@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lagunas Green · Cosecha</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:      #0d120d;
+    --surface: #131a13;
+    --border:  rgba(255,255,255,0.07);
+    --green:   #4ade80;
+    --green3:  #16a34a;
+    --text:    #e8f5e8;
+    --muted:   #6b8a6b;
+    --up:      #4ade80;
+    --dn:      #f87171;
+    --mono:    'Space Mono', monospace;
+    --sans:    'DM Sans', sans-serif;
+    --c0:#4ade80; --c1:#2dd4bf; --c2:#818cf8;
+    --c3:#60a5fa; --c4:#fbbf24; --c5:#fb923c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);max-width:960px;margin:0 auto;padding:0 0 48px}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--border)}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-mark{width:36px;height:36px;background:var(--green3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .logo-name{font-size:15px;font-weight:700;color:var(--green);letter-spacing:.04em}
+  .logo-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2.5s infinite;display:inline-block;margin-right:6px}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+  #lastUpdated{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  #rowCount{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px;text-align:right}
+
+  #statusBanner{margin:16px 24px 0;padding:12px 16px;border-radius:8px;font-size:13px;font-family:var(--mono);display:none}
+  .loading{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:#fbbf24}
+  .error{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#f87171}
+
+  main{padding:0 24px}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0 0}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--mono)}
+  .kpi-val{font-size:26px;font-weight:700;font-family:var(--mono);color:var(--text);line-height:1}
+  .kpi-sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .up{color:var(--up)!important} .dn{color:var(--dn)!important} .nu{color:var(--muted)!important}
+
+  .sec-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono);margin:24px 0 10px;display:flex;align-items:center;gap:8px}
+  .sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:10px}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+  .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+  .charts-row{display:grid;grid-template-columns:1.1fr 1fr;gap:12px}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono);font-weight:400;padding:0 8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+  thead th:nth-child(-n+2){text-align:left}
+  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr:last-child{border-bottom:none}
+  tbody td{padding:9px 8px;font-family:var(--mono);font-size:13px;text-align:right;color:var(--text)}
+  tbody td:nth-child(2){text-align:left;font-family:var(--sans);font-weight:500}
+  .bar-cell{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+  .mini-wrap{width:56px;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+  .mini-fill{height:100%;border-radius:3px}
+
+  footer{margin-top:32px;padding:16px 24px 0;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);font-family:var(--mono);border-top:1px solid var(--border)}
+  .refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 12px;cursor:pointer;transition:border-color .15s,color .15s}
+  .refresh-btn:hover{border-color:var(--green3);color:var(--green)}
+
+  @media(max-width:680px){
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .charts-row{grid-template-columns:1fr}
+    header{flex-direction:column;gap:10px;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">🌿</div>
+    <div>
+      <div class="logo-name">Lagunas Green</div>
+      <div class="logo-sub">Campo Comunidad · Registro de cosecha</div>
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div><span class="live-dot"></span><span id="lastUpdated">cargando…</span></div>
+    <div id="rowCount"></div>
+  </div>
+</header>
+
+<div id="statusBanner"></div>
+
+<main>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi"><div class="kpi-label">Acumulado</div><div class="kpi-val nu">—</div><div class="kpi-sub">jabas totales</div></div>
+    <div class="kpi"><div class="kpi-label">Último día</div><div class="kpi-val nu">—</div><div class="kpi-sub">vs día anterior</div></div>
+    <div class="kpi"><div class="kpi-label">Sección líder</div><div class="kpi-val nu" style="font-size:16px;margin-top:4px">—</div><div class="kpi-sub">jabas totales</div></div>
+    <div class="kpi"><div class="kpi-label">Secciones activas</div><div class="kpi-val nu">—</div><div class="kpi-sub">en último día</div></div>
+  </div>
+
+  <div class="sec-title">producción diaria</div>
+  <div class="legend" id="legend"></div>
+  <div class="charts-row">
+    <div class="chart-card"><div style="position:relative;height:200px"><canvas id="stackChart" role="img" aria-label="Jabas por sección por día apiladas">Cargando…</canvas></div></div>
+    <div class="chart-card"><div style="position:relative;height:200px"><canvas id="lineChart"  role="img" aria-label="Tendencia diaria por sección">Cargando…</canvas></div></div>
+  </div>
+
+  <div class="sec-title">resumen por sección</div>
+  <div class="chart-card">
+    <table><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
+  </div>
+</main>
+
+<footer>
+  <span>Google Sheets · auto-refresh 5 min</span>
+  <button class="refresh-btn" onclick="loadData()">↻ Actualizar ahora</button>
+</footer>
+
+<script>
+const CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8/pub?gid=387764593&single=true&output=csv';
+const COLORS   = ['#4ade80','#2dd4bf','#818cf8','#60a5fa','#fbbf24','#fb923c','#f472b6','#a78bfa'];
+const DASHES   = [[],[6,3],[2,3],[8,4],[4,2,2,2],[6,2]];
+
+function parseCSV(txt) {
+  const lines = txt.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (cols[i] || '').replace(/"/g,'').trim());
+    return obj;
+  }).filter(r => {
+    const v = Object.entries(r).find(([k]) => k.includes('jaba'));
+    return v && !isNaN(parseFloat(v[1]));
+  });
+}
+
+function findCol(sample, needles) {
+  return Object.keys(sample).find(k => needles.some(n => k.toLowerCase().includes(n))) || null;
+}
+
+function sortDate(d) {
+  const p = d.split('/');
+  if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+  if (p.length === 2) return `0000-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+  return d;
+}
+
+function process(rows) {
+  const kS = findCol(rows[0], ['secci','section']);
+  const kD = findCol(rows[0], ['fecha','date','día','dia']);
+  const kJ = findCol(rows[0], ['jaba','caja','box']);
+  if (!kS || !kD || !kJ) {
+    console.warn('Headers:', Object.keys(rows[0]));
+    return null;
+  }
+  const dates = [...new Set(rows.map(r => r[kD]))].sort((a,b) => sortDate(a).localeCompare(sortDate(b)));
+  const secs  = [...new Set(rows.map(r => r[kS]).filter(Boolean))];
+  const mat   = {};
+  secs.forEach(s => { mat[s] = {}; dates.forEach(d => mat[s][d] = 0); });
+  rows.forEach(r => {
+    const s = r[kS], d = r[kD], v = parseFloat(r[kJ]) || 0;
+    if (s && d) mat[s][d] = (mat[s][d] || 0) + v;
+  });
+  const totals = {};
+  secs.forEach(s => totals[s] = dates.reduce((sum,d) => sum+(mat[s][d]||0), 0));
+  const sorted = secs.slice().sort((a,b) => totals[b]-totals[a]);
+  const daily  = dates.map(d => secs.reduce((sum,s) => sum+(mat[s][d]||0), 0));
+  const grand  = daily.reduce((s,v) => s+v, 0);
+  const lastD  = dates[dates.length-1];
+  const prevD  = dates[dates.length-2];
+  const todayV = daily[daily.length-1];
+  const yestV  = daily.length >= 2 ? daily[daily.length-2] : null;
+  const actLast= secs.filter(s => (mat[s][lastD]||0) > 0).length;
+  return {dates, sorted, secs, mat, totals, daily, grand, lastD, prevD, todayV, yestV, actLast};
+}
+
+let sInst = null, lInst = null;
+
+function render(d) {
+  const {dates, sorted, mat, totals, grand, lastD, prevD, todayV, yestV, actLast} = d;
+  const delta  = yestV !== null ? todayV - yestV : null;
+  const dCls   = delta === null ? 'nu' : delta >= 0 ? 'up' : 'dn';
+  const dStr   = delta !== null ? (delta >= 0 ? `+${delta}` : `${delta}`) : '—';
+  const top    = sorted[0];
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Acumulado</div><div class="kpi-val nu">${grand}</div><div class="kpi-sub nu">jabas · ${dates.length} días</div></div>
+    <div class="kpi"><div class="kpi-label">Último día (${lastD})</div><div class="kpi-val ${dCls}">${todayV}</div><div class="kpi-sub ${dCls}">${dStr} vs ${prevD||'—'}</div></div>
+    <div class="kpi"><div class="kpi-label">Sección líder</div><div class="kpi-val nu" style="font-size:${top.length>9?14:18}px;margin-top:4px">${top}</div><div class="kpi-sub nu">${totals[top]} jabas</div></div>
+    <div class="kpi"><div class="kpi-label">Secciones activas</div><div class="kpi-val nu">${actLast}</div><div class="kpi-sub nu">en ${lastD}</div></div>
+  `;
+
+  document.getElementById('legend').innerHTML = sorted.map((s,i) =>
+    `<div class="legend-item"><span class="leg-dot" style="background:${COLORS[i%8]}"></span>${s}</div>`
+  ).join('');
+
+  const shortD = dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
+  const tick   = '#5a7a5a';
+  const grid   = 'rgba(255,255,255,0.06)';
+
+  if (sInst) sInst.destroy();
+  sInst = new Chart(document.getElementById('stackChart'), {
+    type: 'bar',
+    data: {
+      labels: shortD,
+      datasets: sorted.map((s,i) => ({
+        label: s,
+        data: dates.map(d => mat[s][d]||0),
+        backgroundColor: COLORS[i%8],
+        borderRadius: 2, borderSkipped: false
+      }))
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{mode:'index', callbacks:{footer: items=>`Total: ${items.reduce((s,i)=>s+i.parsed.y,0)} jabas`}}
+      },
+      scales: {
+        x:{stacked:true, ticks:{color:tick,font:{size:11}}, grid:{display:false}},
+        y:{stacked:true, ticks:{color:tick,font:{size:11}}, grid:{color:grid}}
+      }
+    }
+  });
+
+  if (lInst) lInst.destroy();
+  lInst = new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+      labels: shortD,
+      datasets: sorted.map((s,i) => ({
+        label: s,
+        data: dates.map(d => (mat[s][d]>0 ? mat[s][d] : null)),
+        borderColor: COLORS[i%8],
+        backgroundColor:'transparent',
+        borderWidth:2,
+        borderDash: DASHES[i%6],
+        pointRadius:4, pointBackgroundColor:COLORS[i%8],
+        tension:0.3, spanGaps:false
+      }))
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:tick,font:{size:11}},grid:{display:false}},
+        y:{ticks:{color:tick,font:{size:11}},grid:{color:grid},beginAtZero:true}
+      }
+    }
+  });
+
+  const dHeaders = dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
+  document.getElementById('tHead').innerHTML = `
+    <tr>
+      <th style="width:12px"></th>
+      <th>Sección</th>
+      ${dHeaders.map(d=>`<th>${d}</th>`).join('')}
+      <th>Total</th><th>%</th><th>Tend.</th>
+    </tr>`;
+
+  document.getElementById('tBody').innerHTML = sorted.map((s,i) => {
+    const tot = totals[s];
+    const pct = Math.round(tot/grand*100);
+    const c   = COLORS[i%8];
+    const vals = dates.map(d => mat[s][d]||0);
+    const nz   = vals.filter(v=>v>0);
+    let arr = '<span class="nu">→</span>';
+    if (nz.length>=2) {
+      const [a,b] = [nz[nz.length-2], nz[nz.length-1]];
+      arr = b>a ? '<span class="up">↑</span>' : b<a ? '<span class="dn">↓</span>' : '<span class="nu">→</span>';
+    }
+    return `<tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c}"></span></td>
+      <td style="font-family:var(--sans);font-weight:500">${s}</td>
+      ${vals.map(v=>`<td style="color:${v>0?'var(--text)':'var(--muted)'}">${v>0?v:'—'}</td>`).join('')}
+      <td style="font-weight:700">${tot}</td>
+      <td><div class="bar-cell"><div class="mini-wrap"><div class="mini-fill" style="width:${pct}%;background:${c}"></div></div>${pct}%</div></td>
+      <td style="text-align:center;font-size:15px">${arr}</td>
+    </tr>`;
+  }).join('');
+}
+
+function showStatus(type, msg) {
+  const b = document.getElementById('statusBanner');
+  b.className = type; b.textContent = msg; b.style.display = 'block';
+}
+
+async function loadData() {
+  showStatus('loading', '↻ Cargando datos desde Google Sheets…');
+  try {
+    const res = await fetch(CSV_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = parseCSV(await res.text());
+    if (!rows.length) throw new Error('CSV vacío o sin datos.');
+    const data = process(rows);
+    if (!data) throw new Error('No se encontraron columnas Sección / Fecha / Jabas. Verifica los encabezados del Sheet.');
+    document.getElementById('statusBanner').style.display = 'none';
+    render(data);
+    document.getElementById('lastUpdated').textContent =
+      'Actualizado ' + new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('rowCount').textContent = `${rows.length} registros`;
+  } catch(e) {
+    showStatus('error', `⚠ ${e.message} — Publica el Sheet: Archivo → Compartir → Publicar en la web.`);
+    document.getElementById('lastUpdated').textContent = 'Error al cargar';
+  }
+}
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
