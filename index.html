@@ -77,6 +77,14 @@
 
   main{padding:0 26px}
 
+  /* ── toggle de unidad ────────────────────── */
+  .unit-row{display:none;justify-content:flex-end;margin:22px 0 -6px}
+  .unit-toggle{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px}
+  .u-btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    background:none;border:none;border-radius:999px;padding:6px 16px;cursor:pointer;transition:all .18s}
+  .u-btn:hover{color:var(--text)}
+  .u-btn.active{background:rgba(167,225,99,.14);color:var(--green);box-shadow:inset 0 0 0 1px rgba(167,225,99,.35)}
+
   /* ── KPIs ────────────────────────────────── */
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0 0}
   .kpi{position:relative;background:linear-gradient(180deg,var(--surface2),var(--surface));
@@ -190,6 +198,13 @@
 <div id="statusBanner"></div>
 
 <main>
+  <div class="unit-row reveal d1" id="unitRow">
+    <div class="unit-toggle" role="group" aria-label="Unidad de medida">
+      <button id="uJabas" class="u-btn active" onclick="setUnit('jabas')" aria-pressed="true">Jabas</button>
+      <button id="uKg" class="u-btn" onclick="setUnit('kg')" aria-pressed="false">Kilos</button>
+    </div>
+  </div>
+
   <div class="kpi-grid reveal d1" id="kpiGrid">
     <div class="kpi"><div class="kpi-label">Acumulado</div><div class="kpi-val nu">—</div><div class="kpi-sub">jabas totales</div></div>
     <div class="kpi"><div class="kpi-label">Último día</div><div class="kpi-val nu">—</div><div class="kpi-sub">vs día anterior</div></div>
@@ -285,20 +300,49 @@ function process(rows) {
   const kS = findCol(rows[0], ['secci','section']);
   const kD = findCol(rows[0], ['fecha','date','día','dia']);
   const kJ = findCol(rows[0], ['jaba','caja','box']);
+  const kK = findCol(rows[0], ['kg','kilo','peso']);
   if (!kS || !kD || !kJ) { console.warn('Headers:', Object.keys(rows[0])); return null; }
   const dates = [...new Set(rows.map(r => r[kD]))].sort((a,b) => sortDate(a).localeCompare(sortDate(b)));
   const secs  = [...new Set(rows.map(r => r[kS]).filter(Boolean))];
-  const mat   = {};
-  secs.forEach(s => { mat[s] = {}; dates.forEach(d => mat[s][d] = 0); });
+  const mat = {}, matK = {};
+  secs.forEach(s => { mat[s] = {}; matK[s] = {}; dates.forEach(d => { mat[s][d] = 0; matK[s][d] = 0; }); });
   rows.forEach(r => {
     const s = r[kS], d = r[kD], v = parseFloat(r[kJ]) || 0;
-    if (s && d) mat[s][d] = (mat[s][d] || 0) + v;
+    if (s && d) {
+      mat[s][d] = (mat[s][d] || 0) + v;
+      if (kK) matK[s][d] = (matK[s][d] || 0) + (parseFloat(r[kK]) || 0);
+    }
   });
-  const totals = {};
-  secs.forEach(s => totals[s] = dates.reduce((sum,d) => sum+(mat[s][d]||0), 0));
+  const totals = {}, totalsK = {};
+  secs.forEach(s => {
+    totals[s]  = dates.reduce((sum,d) => sum+(mat[s][d]||0), 0);
+    totalsK[s] = dates.reduce((sum,d) => sum+(matK[s][d]||0), 0);
+  });
   const sorted = secs.slice().sort((a,b) => totals[b]-totals[a]);
   const grand  = sorted.reduce((s,x) => s+totals[x], 0);
-  return {dates, sorted, mat, totals, grand};
+  const grandK = sorted.reduce((s,x) => s+totalsK[x], 0);
+  return {dates, sorted, mat, matK, totals, totalsK, grand, grandK, hasKg: !!kK && grandK > 0};
+}
+
+/* ── unidad (jabas / kg) ──────────────────── */
+let unit = localStorage.getItem('lg-unit') === 'kg' ? 'kg' : 'jabas';
+const M = () => unit === 'kg' ? DATA.matK : DATA.mat;       // matriz activa
+const T = () => unit === 'kg' ? DATA.totalsK : DATA.totals; // totales activos
+const G = () => unit === 'kg' ? DATA.grandK : DATA.grand;   // gran total activo
+const uName = () => unit === 'kg' ? 'kg' : 'jabas';
+const fmtU  = v => unit === 'kg' ? fmt(Math.round(v)) : fmt(v);
+
+function setUnit(u) {
+  if (u === 'kg' && (!DATA || !DATA.hasKg)) return;
+  unit = u;
+  localStorage.setItem('lg-unit', u);
+  syncUnitToggle();
+  renderView();
+}
+function syncUnitToggle() {
+  const j = document.getElementById('uJabas'), k = document.getElementById('uKg');
+  j.classList.toggle('active', unit === 'jabas'); j.setAttribute('aria-pressed', unit === 'jabas');
+  k.classList.toggle('active', unit === 'kg');    k.setAttribute('aria-pressed', unit === 'kg');
 }
 
 /* ── filtro ───────────────────────────────── */
@@ -317,9 +361,12 @@ function clearFilter() { filter.clear(); renderView(); }
 /* ── vista derivada (respeta el filtro) ───── */
 function computeView() {
   const sel = selectedSecs();
-  const {dates, mat} = DATA;
+  const {dates} = DATA;
+  const mat = M();
   const daily = dates.map(d => sel.reduce((s,x) => s+(mat[x][d]||0), 0));
   const grand = daily.reduce((a,b) => a+b, 0);
+  const otherMat = unit === 'kg' ? DATA.mat : DATA.matK;
+  const grandOther = sel.reduce((s,x) => s + dates.reduce((a,d) => a+(otherMat[x][d]||0), 0), 0);
   const lastD = dates[dates.length-1], prevD = dates[dates.length-2];
   const todayV = daily[daily.length-1];
   const yestV  = daily.length >= 2 ? daily[daily.length-2] : null;
@@ -327,7 +374,7 @@ function computeView() {
   let bestI = 0;
   daily.forEach((v,i) => { if (v > daily[bestI]) bestI = i; });
   const activeDays = daily.filter(v => v > 0).length;
-  return {sel, daily, grand, lastD, prevD, todayV, yestV, actLast,
+  return {sel, daily, grand, grandOther, lastD, prevD, todayV, yestV, actLast,
           bestD: dates[bestI], bestV: daily[bestI],
           avg: activeDays ? Math.round(grand/activeDays) : 0};
 }
@@ -356,23 +403,27 @@ function renderView() {
 function renderKPIs(v) {
   const delta = v.yestV !== null ? v.todayV - v.yestV : null;
   const dCls  = delta === null ? 'nu' : delta >= 0 ? 'up' : 'dn';
-  const dStr  = delta !== null ? (delta >= 0 ? `+${fmt(delta)}` : fmt(delta)) : '—';
+  const dStr  = delta !== null ? (delta >= 0 ? `+${fmtU(delta)}` : fmtU(delta)) : '—';
   const isF   = filter.size > 0;
-  const pctOfTotal = isF && DATA.grand ? Math.round(v.grand/DATA.grand*100) : null;
+  const pctOfTotal = isF && G() ? Math.round(v.grand/G()*100) : null;
+  // equivalencia en la otra unidad (≈ porque los kg son estimados)
+  const equiv = DATA.hasKg
+    ? (unit === 'kg' ? `= ${fmt(Math.round(v.grandOther))} jabas` : `≈ ${fmt(Math.round(v.grandOther))} kg`)
+    : '';
 
   let k3, k4;
   if (isF) {
     k3 = `<div class="kpi"><div class="kpi-label">Mejor día</div>
             <div class="kpi-val nu" style="font-size:20px">${v.bestD||'—'}</div>
-            <div class="kpi-sub nu">${fmt(v.bestV||0)} jabas</div></div>`;
+            <div class="kpi-sub nu">${fmtU(v.bestV||0)} ${uName()}</div></div>`;
     k4 = `<div class="kpi"><div class="kpi-label">Promedio diario</div>
             <div class="kpi-val nu">${fmt(v.avg)}</div>
-            <div class="kpi-sub nu">jabas por día activo</div></div>`;
+            <div class="kpi-sub nu">${uName()} por día activo</div></div>`;
   } else {
     const top = DATA.sorted[0];
     k3 = `<div class="kpi"><div class="kpi-label">Sección líder</div>
             <div class="kpi-val nu" style="font-size:${top.length>9?15:19}px;margin-top:4px">${top}</div>
-            <div class="kpi-sub nu">${fmt(DATA.totals[top])} jabas</div></div>`;
+            <div class="kpi-sub nu">${fmtU(T()[top])} ${uName()}</div></div>`;
     k4 = `<div class="kpi"><div class="kpi-label">Secciones activas</div>
             <div class="kpi-val nu">${v.actLast}</div>
             <div class="kpi-sub nu">en ${v.lastD||'—'}</div></div>`;
@@ -380,10 +431,10 @@ function renderKPIs(v) {
 
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi"><div class="kpi-label">Acumulado${isF?' · filtro':''}</div>
-      <div class="kpi-val" style="color:var(--green)">${fmt(v.grand)}</div>
-      <div class="kpi-sub nu">jabas · ${DATA.dates.length} días${pctOfTotal!==null?` · ${pctOfTotal}% del total`:''}</div></div>
+      <div class="kpi-val" style="color:var(--green)">${fmtU(v.grand)}</div>
+      <div class="kpi-sub nu">${uName()} · ${DATA.dates.length} días${equiv?` · ${equiv}`:''}${pctOfTotal!==null?` · ${pctOfTotal}% del total`:''}</div></div>
     <div class="kpi"><div class="kpi-label">Último día (${v.lastD||'—'})</div>
-      <div class="kpi-val ${dCls}">${fmt(v.todayV||0)}</div>
+      <div class="kpi-val ${dCls}">${fmtU(v.todayV||0)}</div>
       <div class="kpi-sub ${dCls}">${dStr} vs ${v.prevD||'—'}</div></div>
     ${k3}${k4}`;
 }
@@ -397,12 +448,13 @@ function renderChips() {
       style="--chip-bg:${c}22;--chip-bd:${c}88;--chip-glow:${c}"
       aria-pressed="${on}" onclick="toggleSection('${s.replace(/'/g,"\\'")}')">
       <span class="dot" style="background:${c}"></span>${s}
-      <span class="n">${fmt(DATA.totals[s])}</span></button>`;
+      <span class="n">${fmtU(T()[s])}</span></button>`;
   }).join('');
 }
 
 function chartDatasets(sel) {
-  const {dates, mat} = DATA;
+  const {dates} = DATA;
+  const mat = M();
   const bar = sel.map(s => ({
     label: s,
     data: dates.map(d => mat[s][d]||0),
@@ -459,7 +511,10 @@ function buildCharts(v) {
       plugins: {
         legend: {display:false},
         tooltip: {...TOOLTIP_STYLE, mode:'index',
-          callbacks:{footer: items => `Total: ${fmt(items.reduce((s,i)=>s+i.parsed.y,0))} jabas`}}
+          callbacks:{
+            label: ctx => ` ${ctx.dataset.label}: ${fmtU(ctx.parsed.y)}`,
+            footer: items => `Total: ${fmtU(items.reduce((s,i)=>s+i.parsed.y,0))} ${uName()}`
+          }}
       },
       scales: {
         x:{stacked:true, ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{display:false}},
@@ -475,7 +530,8 @@ function buildCharts(v) {
     options: {
       responsive: true, maintainAspectRatio: false,
       onClick: chartClick, onHover: chartHover,
-      plugins: {legend:{display:false}, tooltip:{...TOOLTIP_STYLE}},
+      plugins: {legend:{display:false}, tooltip:{...TOOLTIP_STYLE,
+        callbacks:{label: ctx => ` ${ctx.dataset.label}: ${fmtU(ctx.parsed.y)} ${uName()}`}}},
       scales: {
         x:{ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{display:false}},
         y:{ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{color:grid}, beginAtZero:true, border:{display:false}}
@@ -502,13 +558,14 @@ function spark(vals, c) {
 }
 
 function renderTable() {
-  const {dates, sorted, mat, totals, grand} = DATA;
+  const {dates, sorted} = DATA;
+  const mat = M(), totals = T(), grand = G();
   const dHeaders = dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
 
   document.getElementById('tHead').innerHTML = `
     <tr><th style="width:14px"></th><th>Sección</th>
     ${dHeaders.map(d=>`<th>${d}</th>`).join('')}
-    <th>Total</th><th>%</th><th>Tend.</th></tr>`;
+    <th>Total ${uName()}</th><th>%</th><th>Tend.</th></tr>`;
 
   document.getElementById('tBody').innerHTML = sorted.map(s => {
     const c = colorOf(s);
@@ -522,8 +579,8 @@ function renderTable() {
       title="clic para ${on?'quitar de':'aislar en'} el filtro">
       <td><span class="row-dot" style="background:${c}"></span></td>
       <td class="sec-name">${s}</td>
-      ${vals.map(val=>`<td class="${val>0?'':'zero'}">${val>0?fmt(val):'—'}</td>`).join('')}
-      <td style="font-weight:700">${fmt(tot)}</td>
+      ${vals.map(val=>`<td class="${val>0?'':'zero'}">${val>0?fmtU(val):'—'}</td>`).join('')}
+      <td style="font-weight:700">${fmtU(tot)}</td>
       <td><div class="bar-cell"><div class="mini-wrap"><div class="mini-fill" style="width:${pct}%;background:${c}"></div></div>${pct}%</div></td>
       <td>${spark(vals, c)}</td>
     </tr>`;
@@ -554,6 +611,9 @@ async function loadData() {
     if (!data) throw new Error('No se encontraron columnas Sección / Fecha / Jabas. Verifica los encabezados del Sheet.');
     DATA = data;
     filter = new Set([...filter].filter(s => DATA.sorted.includes(s)));
+    if (!DATA.hasKg && unit === 'kg') unit = 'jabas';
+    document.getElementById('unitRow').style.display = DATA.hasKg ? 'flex' : 'none';
+    syncUnitToggle();
     if (barChart) { barChart.destroy(); barChart = null; }
     if (lineChart) { lineChart.destroy(); lineChart = null; }
     document.getElementById('statusBanner').style.display = 'none';
