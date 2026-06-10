@@ -4,93 +4,184 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lagunas Green · Cosecha</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,500&family=Schibsted+Grotesk:wght@400;500;700&family=Spline+Sans+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --bg:      #0d120d;
-    --surface: #131a13;
-    --border:  rgba(255,255,255,0.07);
-    --green:   #4ade80;
-    --green3:  #16a34a;
-    --text:    #e8f5e8;
-    --muted:   #6b8a6b;
-    --up:      #4ade80;
-    --dn:      #f87171;
-    --mono:    'Space Mono', monospace;
-    --sans:    'DM Sans', sans-serif;
-    --c0:#4ade80; --c1:#2dd4bf; --c2:#818cf8;
-    --c3:#60a5fa; --c4:#fbbf24; --c5:#fb923c;
+    --bg:       #0a0e09;
+    --surface:  #11170f;
+    --surface2: #161e13;
+    --border:   rgba(214,235,185,0.08);
+    --border2:  rgba(214,235,185,0.16);
+    --green:    #a7e163;
+    --green-dim:#5d7a3e;
+    --teal:     #4fd1c5;
+    --amber:    #f5c33b;
+    --text:     #edf3e3;
+    --muted:    #7d9070;
+    --faint:    #51604a;
+    --up:       #a7e163;
+    --dn:       #f08c7d;
+    --serif:    'Fraunces', serif;
+    --sans:     'Schibsted Grotesk', sans-serif;
+    --mono:     'Spline Sans Mono', monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);max-width:960px;margin:0 auto;padding:0 0 48px}
+  html{scrollbar-color:var(--faint) transparent}
 
-  header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--border)}
-  .logo{display:flex;align-items:center;gap:10px}
-  .logo-mark{width:36px;height:36px;background:var(--green3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
-  .logo-name{font-size:15px;font-weight:700;color:var(--green);letter-spacing:.04em}
-  .logo-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
-  .live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2.5s infinite;display:inline-block;margin-right:6px}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
-  #lastUpdated{font-size:11px;color:var(--muted);font-family:var(--mono)}
-  #rowCount{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px;text-align:right}
+  body{
+    background:
+      radial-gradient(1100px 520px at 85% -8%, rgba(167,225,99,.08), transparent 62%),
+      radial-gradient(800px 480px at -12% 108%, rgba(79,209,197,.06), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    max-width:1060px;
+    margin:0 auto;
+    padding:0 0 56px;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* grano sutil */
+  body::after{
+    content:'';position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
 
-  #statusBanner{margin:16px 24px 0;padding:12px 16px;border-radius:8px;font-size:13px;font-family:var(--mono);display:none}
-  .loading{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:#fbbf24}
-  .error{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#f87171}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .reveal{animation:rise .55s cubic-bezier(.22,.8,.32,1) both}
+  .d1{animation-delay:.05s}.d2{animation-delay:.12s}.d3{animation-delay:.2s}.d4{animation-delay:.28s}.d5{animation-delay:.36s}
+  @media(prefers-reduced-motion:reduce){.reveal{animation:none}}
 
-  main{padding:0 24px}
+  /* ── header ─────────────────────────────── */
+  header{display:flex;align-items:flex-end;justify-content:space-between;padding:30px 26px 22px;border-bottom:1px solid var(--border)}
+  .logo{display:flex;align-items:center;gap:14px}
+  .logo-mark{width:46px;height:46px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(145deg,#1d2a14,#121a0c);
+    border:1px solid var(--border2);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(214,235,185,.1)}
+  .logo-name{font-family:var(--serif);font-size:24px;font-weight:600;letter-spacing:.01em;line-height:1.05}
+  .logo-name em{font-style:italic;color:var(--green);font-weight:400}
+  .logo-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px;letter-spacing:.06em;text-transform:uppercase}
+  .head-meta{text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;display:inline-block;margin-right:7px;
+    box-shadow:0 0 8px rgba(167,225,99,.7);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.72)}}
+  #rowCount{margin-top:3px;color:var(--faint)}
 
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0 0}
-  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
-  .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--mono)}
-  .kpi-val{font-size:26px;font-weight:700;font-family:var(--mono);color:var(--text);line-height:1}
-  .kpi-sub{font-size:12px;color:var(--muted);margin-top:4px}
+  #statusBanner{margin:16px 26px 0;padding:12px 16px;border-radius:10px;font-size:13px;font-family:var(--mono);display:none}
+  .loading{background:rgba(245,195,59,.08);border:1px solid rgba(245,195,59,.25);color:var(--amber)}
+  .error{background:rgba(240,140,125,.07);border:1px solid rgba(240,140,125,.3);color:var(--dn)}
+
+  main{padding:0 26px}
+
+  /* ── KPIs ────────────────────────────────── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0 0}
+  .kpi{position:relative;background:linear-gradient(180deg,var(--surface2),var(--surface));
+    border:1px solid var(--border);border-radius:14px;padding:18px 18px 16px;overflow:hidden;
+    transition:transform .2s cubic-bezier(.22,.8,.32,1), border-color .2s}
+  .kpi::before{content:'';position:absolute;top:0;left:18px;right:18px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(167,225,99,.45),transparent)}
+  .kpi:hover{transform:translateY(-2px);border-color:var(--border2)}
+  .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--mono)}
+  .kpi-val{font-size:30px;font-weight:700;font-family:var(--mono);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .kpi-sub{font-size:12px;color:var(--muted);margin-top:7px}
   .up{color:var(--up)!important} .dn{color:var(--dn)!important} .nu{color:var(--muted)!important}
 
-  .sec-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono);margin:24px 0 10px;display:flex;align-items:center;gap:8px}
-  .sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+  /* ── chips de filtro ─────────────────────── */
+  .filter-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:30px 0 12px}
+  .sec-title{font-family:var(--serif);font-style:italic;font-size:19px;font-weight:500;color:var(--text);letter-spacing:.01em}
+  .sec-title small{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-left:10px}
+  .clear-btn{font-family:var(--mono);font-size:11px;color:var(--amber);background:none;border:none;cursor:pointer;
+    padding:4px 0;border-bottom:1px dashed rgba(245,195,59,.4);display:none;transition:opacity .15s}
+  .clear-btn:hover{opacity:.75}
+  .clear-btn.visible{display:inline-block}
 
-  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:10px}
-  .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
-  .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 11px;border-radius:999px;cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);
+    font-family:var(--sans);font-size:13px;font-weight:500;color:var(--muted);
+    transition:all .18s cubic-bezier(.22,.8,.32,1);user-select:none}
+  .chip:hover{border-color:var(--border2);color:var(--text);transform:translateY(-1px)}
+  .chip .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:box-shadow .18s}
+  .chip .n{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .chip.active{color:var(--text);background:var(--chip-bg);border-color:var(--chip-bd)}
+  .chip.active .dot{box-shadow:0 0 9px var(--chip-glow)}
+  .chip.active .n{color:inherit;opacity:.7}
+  .chip.dimmed{opacity:.42}
+  .chip.dimmed:hover{opacity:.8}
 
-  .charts-row{display:grid;grid-template-columns:1.1fr 1fr;gap:12px}
-  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .filter-note{font-family:var(--mono);font-size:11px;color:var(--amber);margin-top:10px;display:none}
+  .filter-note.visible{display:block}
 
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  thead th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono);font-weight:400;padding:0 8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+  /* ── gráficos ────────────────────────────── */
+  .charts-row{display:grid;grid-template-columns:1.12fr 1fr;gap:14px;margin-top:14px}
+  .chart-card{background:linear-gradient(180deg,var(--surface2),var(--surface));
+    border:1px solid var(--border);border-radius:14px;padding:18px}
+  .chart-name{font-family:var(--mono);font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+  .chart-box{position:relative;height:215px}
+
+  /* ── tabla ───────────────────────────────── */
+  .table-card{background:linear-gradient(180deg,var(--surface2),var(--surface));
+    border:1px solid var(--border);border-radius:14px;padding:6px 6px 4px;margin-top:14px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+  thead th{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);
+    font-weight:400;padding:12px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   thead th:nth-child(-n+2){text-align:left}
-  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s,opacity .25s}
   tbody tr:last-child{border-bottom:none}
-  tbody td{padding:9px 8px;font-family:var(--mono);font-size:13px;text-align:right;color:var(--text)}
-  tbody td:nth-child(2){text-align:left;font-family:var(--sans);font-weight:500}
-  .bar-cell{display:flex;align-items:center;gap:6px;justify-content:flex-end}
-  .mini-wrap{width:56px;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
-  .mini-fill{height:100%;border-radius:3px}
+  tbody tr:hover{background:rgba(214,235,185,.04)}
+  tbody tr.sel{background:var(--row-bg)}
+  tbody tr.dim{opacity:.34}
+  tbody tr:focus-visible{outline:1px solid var(--green-dim);outline-offset:-1px}
+  tbody td{padding:11px 10px;font-family:var(--mono);font-size:13px;text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
+  td.sec-name{text-align:left;font-family:var(--sans);font-weight:500;white-space:nowrap}
+  td.zero{color:var(--faint)}
+  .row-dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+  tr.sel .row-dot{box-shadow:0 0 8px var(--row-glow)}
+  .bar-cell{display:flex;align-items:center;gap:7px;justify-content:flex-end}
+  .mini-wrap{width:54px;height:5px;background:rgba(214,235,185,.08);border-radius:3px;overflow:hidden}
+  .mini-fill{height:100%;border-radius:3px;transition:width .4s cubic-bezier(.22,.8,.32,1)}
+  .spark{display:block}
 
-  footer{margin-top:32px;padding:16px 24px 0;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);font-family:var(--mono);border-top:1px solid var(--border)}
-  .refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 12px;cursor:pointer;transition:border-color .15s,color .15s}
-  .refresh-btn:hover{border-color:var(--green3);color:var(--green)}
+  footer{margin-top:36px;padding:18px 26px 0;display:flex;justify-content:space-between;align-items:center;
+    font-size:11px;color:var(--faint);font-family:var(--mono);border-top:1px solid var(--border)}
+  .refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);
+    font-family:var(--mono);font-size:11px;padding:7px 14px;cursor:pointer;transition:all .18s}
+  .refresh-btn:hover{border-color:var(--green-dim);color:var(--green);transform:translateY(-1px)}
 
-  @media(max-width:680px){
+  @media(max-width:720px){
     .kpi-grid{grid-template-columns:1fr 1fr}
     .charts-row{grid-template-columns:1fr}
-    header{flex-direction:column;gap:10px;align-items:flex-start}
+    header{flex-direction:column;gap:14px;align-items:flex-start}
+    .head-meta{text-align:left}
+    .kpi-val{font-size:24px}
   }
 </style>
 </head>
 <body>
 
-<header>
+<header class="reveal">
   <div class="logo">
-    <div class="logo-mark">🌿</div>
+    <div class="logo-mark">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 21V9" stroke="#a7e163" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M12 9c0-3 1.2-5.4 2.6-6.6.5 1.8.2 4.2-.9 5.7C13 9 12.4 9 12 9Z" fill="#a7e163"/>
+        <path d="M12 9c0-3-1.2-5.4-2.6-6.6-.5 1.8-.2 4.2.9 5.7C11 9 11.6 9 12 9Z" fill="#6da83f"/>
+        <path d="M8.5 13.5c-1.6-.4-3.4-1.7-4-3.2 1.6-.3 3.6.3 4.7 1.5l-.7 1.7Z" fill="#6da83f"/>
+        <path d="M15.5 13.5c1.6-.4 3.4-1.7 4-3.2-1.6-.3-3.6.3-4.7 1.5l.7 1.7Z" fill="#a7e163"/>
+        <path d="M9 17.5c-1.4-.3-2.9-1.3-3.5-2.6 1.4-.3 3.1.2 4 1.2l-.5 1.4Z" fill="#a7e163"/>
+        <path d="M15 17.5c1.4-.3 2.9-1.3 3.5-2.6-1.4-.3-3.1.2-4 1.2l.5 1.4Z" fill="#6da83f"/>
+      </svg>
+    </div>
     <div>
-      <div class="logo-name">Lagunas Green</div>
+      <div class="logo-name">Lagunas <em>Green</em></div>
       <div class="logo-sub">Campo Comunidad · Registro de cosecha</div>
     </div>
   </div>
-  <div style="text-align:right">
+  <div class="head-meta">
     <div><span class="live-dot"></span><span id="lastUpdated">cargando…</span></div>
     <div id="rowCount"></div>
   </div>
@@ -99,36 +190,64 @@
 <div id="statusBanner"></div>
 
 <main>
-  <div class="kpi-grid" id="kpiGrid">
+  <div class="kpi-grid reveal d1" id="kpiGrid">
     <div class="kpi"><div class="kpi-label">Acumulado</div><div class="kpi-val nu">—</div><div class="kpi-sub">jabas totales</div></div>
     <div class="kpi"><div class="kpi-label">Último día</div><div class="kpi-val nu">—</div><div class="kpi-sub">vs día anterior</div></div>
-    <div class="kpi"><div class="kpi-label">Sección líder</div><div class="kpi-val nu" style="font-size:16px;margin-top:4px">—</div><div class="kpi-sub">jabas totales</div></div>
+    <div class="kpi"><div class="kpi-label">Sección líder</div><div class="kpi-val nu" style="font-size:16px">—</div><div class="kpi-sub">jabas totales</div></div>
     <div class="kpi"><div class="kpi-label">Secciones activas</div><div class="kpi-val nu">—</div><div class="kpi-sub">en último día</div></div>
   </div>
 
-  <div class="sec-title">producción diaria</div>
-  <div class="legend" id="legend"></div>
-  <div class="charts-row">
-    <div class="chart-card"><div style="position:relative;height:200px"><canvas id="stackChart" role="img" aria-label="Jabas por sección por día apiladas">Cargando…</canvas></div></div>
-    <div class="chart-card"><div style="position:relative;height:200px"><canvas id="lineChart"  role="img" aria-label="Tendencia diaria por sección">Cargando…</canvas></div></div>
+  <div class="reveal d2">
+    <div class="filter-head">
+      <div class="sec-title">Secciones <small>clic para filtrar</small></div>
+      <button class="clear-btn" id="clearBtn" onclick="clearFilter()">✕ limpiar filtro</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="filter-note" id="filterNote"></div>
   </div>
 
-  <div class="sec-title">resumen por sección</div>
-  <div class="chart-card">
-    <table><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
+  <div class="reveal d3">
+    <div class="filter-head" style="margin-top:30px">
+      <div class="sec-title">Producción diaria</div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-name">Jabas por día · apilado</div>
+        <div class="chart-box"><canvas id="stackChart" role="img" aria-label="Jabas por sección por día apiladas">Cargando…</canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-name">Tendencia por sección</div>
+        <div class="chart-box"><canvas id="lineChart" role="img" aria-label="Tendencia diaria por sección">Cargando…</canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reveal d4">
+    <div class="filter-head" style="margin-top:30px">
+      <div class="sec-title">Resumen por sección</div>
+    </div>
+    <div class="table-card">
+      <table><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
+    </div>
   </div>
 </main>
 
-<footer>
+<footer class="reveal d5">
   <span>Google Sheets · auto-refresh 5 min</span>
   <button class="refresh-btn" onclick="loadData()">↻ Actualizar ahora</button>
 </footer>
 
 <script>
-const CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8/pub?gid=387764593&single=true&output=csv';
-const COLORS   = ['#4ade80','#2dd4bf','#818cf8','#60a5fa','#fbbf24','#fb923c','#f472b6','#a78bfa'];
-const DASHES   = [[],[6,3],[2,3],[8,4],[4,2,2,2],[6,2]];
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8/pub?gid=387764593&single=true&output=csv';
+const COLORS  = ['#a7e163','#4fd1c5','#74a8f7','#c084fc','#f5c33b','#fb923c','#f472b6','#94a3b8'];
+const DASHES  = [[],[6,3],[2,3],[8,4],[4,2,2,2],[6,2]];
+const fmt     = n => n.toLocaleString('es-PE');
 
+let DATA = null;            // datos procesados del CSV
+let filter = new Set();     // secciones seleccionadas (vacío = todas)
+let barChart = null, lineChart = null;
+
+/* ── parsing ──────────────────────────────── */
 function parseCSV(txt) {
   const lines = txt.trim().split('\n');
   if (lines.length < 2) return [];
@@ -166,10 +285,7 @@ function process(rows) {
   const kS = findCol(rows[0], ['secci','section']);
   const kD = findCol(rows[0], ['fecha','date','día','dia']);
   const kJ = findCol(rows[0], ['jaba','caja','box']);
-  if (!kS || !kD || !kJ) {
-    console.warn('Headers:', Object.keys(rows[0]));
-    return null;
-  }
+  if (!kS || !kD || !kJ) { console.warn('Headers:', Object.keys(rows[0])); return null; }
   const dates = [...new Set(rows.map(r => r[kD]))].sort((a,b) => sortDate(a).localeCompare(sortDate(b)));
   const secs  = [...new Set(rows.map(r => r[kS]).filter(Boolean))];
   const mat   = {};
@@ -181,122 +297,247 @@ function process(rows) {
   const totals = {};
   secs.forEach(s => totals[s] = dates.reduce((sum,d) => sum+(mat[s][d]||0), 0));
   const sorted = secs.slice().sort((a,b) => totals[b]-totals[a]);
-  const daily  = dates.map(d => secs.reduce((sum,s) => sum+(mat[s][d]||0), 0));
-  const grand  = daily.reduce((s,v) => s+v, 0);
-  const lastD  = dates[dates.length-1];
-  const prevD  = dates[dates.length-2];
-  const todayV = daily[daily.length-1];
-  const yestV  = daily.length >= 2 ? daily[daily.length-2] : null;
-  const actLast= secs.filter(s => (mat[s][lastD]||0) > 0).length;
-  return {dates, sorted, secs, mat, totals, daily, grand, lastD, prevD, todayV, yestV, actLast};
+  const grand  = sorted.reduce((s,x) => s+totals[x], 0);
+  return {dates, sorted, mat, totals, grand};
 }
 
-let sInst = null, lInst = null;
+/* ── filtro ───────────────────────────────── */
+const colorOf = s => COLORS[DATA.sorted.indexOf(s) % COLORS.length];
+const dashOf  = s => DASHES[DATA.sorted.indexOf(s) % DASHES.length];
+const selectedSecs = () => filter.size ? DATA.sorted.filter(s => filter.has(s)) : DATA.sorted;
 
-function render(d) {
-  const {dates, sorted, mat, totals, grand, lastD, prevD, todayV, yestV, actLast} = d;
-  const delta  = yestV !== null ? todayV - yestV : null;
-  const dCls   = delta === null ? 'nu' : delta >= 0 ? 'up' : 'dn';
-  const dStr   = delta !== null ? (delta >= 0 ? `+${delta}` : `${delta}`) : '—';
-  const top    = sorted[0];
+function toggleSection(s) {
+  if (!DATA || !DATA.sorted.includes(s)) return;
+  filter.has(s) ? filter.delete(s) : filter.add(s);
+  if (filter.size === DATA.sorted.length) filter.clear();
+  renderView();
+}
+function clearFilter() { filter.clear(); renderView(); }
+
+/* ── vista derivada (respeta el filtro) ───── */
+function computeView() {
+  const sel = selectedSecs();
+  const {dates, mat} = DATA;
+  const daily = dates.map(d => sel.reduce((s,x) => s+(mat[x][d]||0), 0));
+  const grand = daily.reduce((a,b) => a+b, 0);
+  const lastD = dates[dates.length-1], prevD = dates[dates.length-2];
+  const todayV = daily[daily.length-1];
+  const yestV  = daily.length >= 2 ? daily[daily.length-2] : null;
+  const actLast = sel.filter(s => (mat[s][lastD]||0) > 0).length;
+  let bestI = 0;
+  daily.forEach((v,i) => { if (v > daily[bestI]) bestI = i; });
+  const activeDays = daily.filter(v => v > 0).length;
+  return {sel, daily, grand, lastD, prevD, todayV, yestV, actLast,
+          bestD: dates[bestI], bestV: daily[bestI],
+          avg: activeDays ? Math.round(grand/activeDays) : 0};
+}
+
+/* ── render ───────────────────────────────── */
+function renderView() {
+  if (!DATA) return;
+  const v = computeView();
+  renderKPIs(v);
+  renderChips();
+  renderCharts(v);
+  renderTable(v);
+
+  const note = document.getElementById('filterNote');
+  const clearBtn = document.getElementById('clearBtn');
+  if (filter.size) {
+    note.textContent = `▸ mostrando ${filter.size} de ${DATA.sorted.length} secciones — los KPIs, gráficos y tabla reflejan solo la selección`;
+    note.classList.add('visible');
+    clearBtn.classList.add('visible');
+  } else {
+    note.classList.remove('visible');
+    clearBtn.classList.remove('visible');
+  }
+}
+
+function renderKPIs(v) {
+  const delta = v.yestV !== null ? v.todayV - v.yestV : null;
+  const dCls  = delta === null ? 'nu' : delta >= 0 ? 'up' : 'dn';
+  const dStr  = delta !== null ? (delta >= 0 ? `+${fmt(delta)}` : fmt(delta)) : '—';
+  const isF   = filter.size > 0;
+  const pctOfTotal = isF && DATA.grand ? Math.round(v.grand/DATA.grand*100) : null;
+
+  let k3, k4;
+  if (isF) {
+    k3 = `<div class="kpi"><div class="kpi-label">Mejor día</div>
+            <div class="kpi-val nu" style="font-size:20px">${v.bestD||'—'}</div>
+            <div class="kpi-sub nu">${fmt(v.bestV||0)} jabas</div></div>`;
+    k4 = `<div class="kpi"><div class="kpi-label">Promedio diario</div>
+            <div class="kpi-val nu">${fmt(v.avg)}</div>
+            <div class="kpi-sub nu">jabas por día activo</div></div>`;
+  } else {
+    const top = DATA.sorted[0];
+    k3 = `<div class="kpi"><div class="kpi-label">Sección líder</div>
+            <div class="kpi-val nu" style="font-size:${top.length>9?15:19}px;margin-top:4px">${top}</div>
+            <div class="kpi-sub nu">${fmt(DATA.totals[top])} jabas</div></div>`;
+    k4 = `<div class="kpi"><div class="kpi-label">Secciones activas</div>
+            <div class="kpi-val nu">${v.actLast}</div>
+            <div class="kpi-sub nu">en ${v.lastD||'—'}</div></div>`;
+  }
 
   document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi"><div class="kpi-label">Acumulado</div><div class="kpi-val nu">${grand}</div><div class="kpi-sub nu">jabas · ${dates.length} días</div></div>
-    <div class="kpi"><div class="kpi-label">Último día (${lastD})</div><div class="kpi-val ${dCls}">${todayV}</div><div class="kpi-sub ${dCls}">${dStr} vs ${prevD||'—'}</div></div>
-    <div class="kpi"><div class="kpi-label">Sección líder</div><div class="kpi-val nu" style="font-size:${top.length>9?14:18}px;margin-top:4px">${top}</div><div class="kpi-sub nu">${totals[top]} jabas</div></div>
-    <div class="kpi"><div class="kpi-label">Secciones activas</div><div class="kpi-val nu">${actLast}</div><div class="kpi-sub nu">en ${lastD}</div></div>
-  `;
+    <div class="kpi"><div class="kpi-label">Acumulado${isF?' · filtro':''}</div>
+      <div class="kpi-val" style="color:var(--green)">${fmt(v.grand)}</div>
+      <div class="kpi-sub nu">jabas · ${DATA.dates.length} días${pctOfTotal!==null?` · ${pctOfTotal}% del total`:''}</div></div>
+    <div class="kpi"><div class="kpi-label">Último día (${v.lastD||'—'})</div>
+      <div class="kpi-val ${dCls}">${fmt(v.todayV||0)}</div>
+      <div class="kpi-sub ${dCls}">${dStr} vs ${v.prevD||'—'}</div></div>
+    ${k3}${k4}`;
+}
 
-  document.getElementById('legend').innerHTML = sorted.map((s,i) =>
-    `<div class="legend-item"><span class="leg-dot" style="background:${COLORS[i%8]}"></span>${s}</div>`
-  ).join('');
-
-  const shortD = dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
-  const tick   = '#5a7a5a';
-  const grid   = 'rgba(255,255,255,0.06)';
-
-  if (sInst) sInst.destroy();
-  sInst = new Chart(document.getElementById('stackChart'), {
-    type: 'bar',
-    data: {
-      labels: shortD,
-      datasets: sorted.map((s,i) => ({
-        label: s,
-        data: dates.map(d => mat[s][d]||0),
-        backgroundColor: COLORS[i%8],
-        borderRadius: 2, borderSkipped: false
-      }))
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: {
-        legend:{display:false},
-        tooltip:{mode:'index', callbacks:{footer: items=>`Total: ${items.reduce((s,i)=>s+i.parsed.y,0)} jabas`}}
-      },
-      scales: {
-        x:{stacked:true, ticks:{color:tick,font:{size:11}}, grid:{display:false}},
-        y:{stacked:true, ticks:{color:tick,font:{size:11}}, grid:{color:grid}}
-      }
-    }
-  });
-
-  if (lInst) lInst.destroy();
-  lInst = new Chart(document.getElementById('lineChart'), {
-    type: 'line',
-    data: {
-      labels: shortD,
-      datasets: sorted.map((s,i) => ({
-        label: s,
-        data: dates.map(d => (mat[s][d]>0 ? mat[s][d] : null)),
-        borderColor: COLORS[i%8],
-        backgroundColor:'transparent',
-        borderWidth:2,
-        borderDash: DASHES[i%6],
-        pointRadius:4, pointBackgroundColor:COLORS[i%8],
-        tension:0.3, spanGaps:false
-      }))
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{color:tick,font:{size:11}},grid:{display:false}},
-        y:{ticks:{color:tick,font:{size:11}},grid:{color:grid},beginAtZero:true}
-      }
-    }
-  });
-
-  const dHeaders = dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
-  document.getElementById('tHead').innerHTML = `
-    <tr>
-      <th style="width:12px"></th>
-      <th>Sección</th>
-      ${dHeaders.map(d=>`<th>${d}</th>`).join('')}
-      <th>Total</th><th>%</th><th>Tend.</th>
-    </tr>`;
-
-  document.getElementById('tBody').innerHTML = sorted.map((s,i) => {
-    const tot = totals[s];
-    const pct = Math.round(tot/grand*100);
-    const c   = COLORS[i%8];
-    const vals = dates.map(d => mat[s][d]||0);
-    const nz   = vals.filter(v=>v>0);
-    let arr = '<span class="nu">→</span>';
-    if (nz.length>=2) {
-      const [a,b] = [nz[nz.length-2], nz[nz.length-1]];
-      arr = b>a ? '<span class="up">↑</span>' : b<a ? '<span class="dn">↓</span>' : '<span class="nu">→</span>';
-    }
-    return `<tr>
-      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c}"></span></td>
-      <td style="font-family:var(--sans);font-weight:500">${s}</td>
-      ${vals.map(v=>`<td style="color:${v>0?'var(--text)':'var(--muted)'}">${v>0?v:'—'}</td>`).join('')}
-      <td style="font-weight:700">${tot}</td>
-      <td><div class="bar-cell"><div class="mini-wrap"><div class="mini-fill" style="width:${pct}%;background:${c}"></div></div>${pct}%</div></td>
-      <td style="text-align:center;font-size:15px">${arr}</td>
-    </tr>`;
+function renderChips() {
+  document.getElementById('chips').innerHTML = DATA.sorted.map(s => {
+    const c = colorOf(s);
+    const on  = filter.has(s);
+    const dim = filter.size > 0 && !on;
+    return `<button class="chip${on?' active':''}${dim?' dimmed':''}"
+      style="--chip-bg:${c}22;--chip-bd:${c}88;--chip-glow:${c}"
+      aria-pressed="${on}" onclick="toggleSection('${s.replace(/'/g,"\\'")}')">
+      <span class="dot" style="background:${c}"></span>${s}
+      <span class="n">${fmt(DATA.totals[s])}</span></button>`;
   }).join('');
 }
 
+function chartDatasets(sel) {
+  const {dates, mat} = DATA;
+  const bar = sel.map(s => ({
+    label: s,
+    data: dates.map(d => mat[s][d]||0),
+    backgroundColor: colorOf(s),
+    borderRadius: 3, borderSkipped: false
+  }));
+  const line = sel.map(s => ({
+    label: s,
+    data: dates.map(d => (mat[s][d]>0 ? mat[s][d] : null)),
+    borderColor: colorOf(s),
+    backgroundColor: sel.length === 1 ? colorOf(s)+'26' : 'transparent',
+    fill: sel.length === 1,
+    borderWidth: 2,
+    borderDash: dashOf(s),
+    pointRadius: 3.5, pointBackgroundColor: colorOf(s),
+    pointBorderColor: 'rgba(10,14,9,.8)', pointBorderWidth: 1.5,
+    tension: 0.35, spanGaps: false
+  }));
+  return {bar, line};
+}
+
+const TOOLTIP_STYLE = {
+  backgroundColor: '#121a0e',
+  borderColor: 'rgba(167,225,99,.25)',
+  borderWidth: 1,
+  titleColor: '#edf3e3',
+  bodyColor: '#a7b89a',
+  titleFont: {family: "'Spline Sans Mono', monospace", size: 11},
+  bodyFont:  {family: "'Spline Sans Mono', monospace", size: 11},
+  padding: 10,
+  cornerRadius: 8,
+  boxPadding: 4
+};
+
+function chartClick(e, els, chart) {
+  if (els.length) toggleSection(chart.data.datasets[els[0].datasetIndex].label);
+}
+function chartHover(e, els, chart) {
+  chart.canvas.style.cursor = els.length ? 'pointer' : 'default';
+}
+
+function buildCharts(v) {
+  const shortD = DATA.dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
+  const tick = '#67785d', grid = 'rgba(214,235,185,0.055)';
+  const ds = chartDatasets(v.sel);
+
+  if (barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById('stackChart'), {
+    type: 'bar',
+    data: {labels: shortD, datasets: ds.bar},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      onClick: chartClick, onHover: chartHover,
+      plugins: {
+        legend: {display:false},
+        tooltip: {...TOOLTIP_STYLE, mode:'index',
+          callbacks:{footer: items => `Total: ${fmt(items.reduce((s,i)=>s+i.parsed.y,0))} jabas`}}
+      },
+      scales: {
+        x:{stacked:true, ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{display:false}},
+        y:{stacked:true, ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{color:grid}, border:{display:false}}
+      }
+    }
+  });
+
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {labels: shortD, datasets: ds.line},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      onClick: chartClick, onHover: chartHover,
+      plugins: {legend:{display:false}, tooltip:{...TOOLTIP_STYLE}},
+      scales: {
+        x:{ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{display:false}},
+        y:{ticks:{color:tick,font:{size:11,family:"'Spline Sans Mono', monospace"}}, grid:{color:grid}, beginAtZero:true, border:{display:false}}
+      }
+    }
+  });
+}
+
+function renderCharts(v) {
+  if (!barChart || !lineChart) { buildCharts(v); return; }
+  const ds = chartDatasets(v.sel);
+  barChart.data.datasets = ds.bar;   barChart.update();
+  lineChart.data.datasets = ds.line; lineChart.update();
+}
+
+function spark(vals, c) {
+  const w = 60, h = 18, max = Math.max(...vals, 1);
+  const n = vals.length;
+  const pts = vals.map((val,i) =>
+    `${n>1 ? (i/(n-1))*(w-4)+2 : w/2},${h-2-(val/max)*(h-5)}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.5"
+      stroke-linejoin="round" stroke-linecap="round" opacity=".9"/></svg>`;
+}
+
+function renderTable() {
+  const {dates, sorted, mat, totals, grand} = DATA;
+  const dHeaders = dates.map(d => { const p=d.split('/'); return p.length>=2?`${p[0]}/${p[1]}`:d; });
+
+  document.getElementById('tHead').innerHTML = `
+    <tr><th style="width:14px"></th><th>Sección</th>
+    ${dHeaders.map(d=>`<th>${d}</th>`).join('')}
+    <th>Total</th><th>%</th><th>Tend.</th></tr>`;
+
+  document.getElementById('tBody').innerHTML = sorted.map(s => {
+    const c = colorOf(s);
+    const tot = totals[s];
+    const pct = grand ? Math.round(tot/grand*100) : 0;
+    const vals = dates.map(d => mat[s][d]||0);
+    const on  = filter.has(s);
+    const dim = filter.size > 0 && !on;
+    return `<tr class="${on?'sel':''}${dim?' dim':''}" tabindex="0" data-sec="${s}"
+      style="--row-bg:${c}14;--row-glow:${c}"
+      title="clic para ${on?'quitar de':'aislar en'} el filtro">
+      <td><span class="row-dot" style="background:${c}"></span></td>
+      <td class="sec-name">${s}</td>
+      ${vals.map(val=>`<td class="${val>0?'':'zero'}">${val>0?fmt(val):'—'}</td>`).join('')}
+      <td style="font-weight:700">${fmt(tot)}</td>
+      <td><div class="bar-cell"><div class="mini-wrap"><div class="mini-fill" style="width:${pct}%;background:${c}"></div></div>${pct}%</div></td>
+      <td>${spark(vals, c)}</td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('#tBody tr').forEach(tr => {
+    tr.addEventListener('click', () => toggleSection(tr.dataset.sec));
+    tr.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSection(tr.dataset.sec); }
+    });
+  });
+}
+
+/* ── carga ────────────────────────────────── */
 function showStatus(type, msg) {
   const b = document.getElementById('statusBanner');
   b.className = type; b.textContent = msg; b.style.display = 'block';
@@ -311,8 +552,12 @@ async function loadData() {
     if (!rows.length) throw new Error('CSV vacío o sin datos.');
     const data = process(rows);
     if (!data) throw new Error('No se encontraron columnas Sección / Fecha / Jabas. Verifica los encabezados del Sheet.');
+    DATA = data;
+    filter = new Set([...filter].filter(s => DATA.sorted.includes(s)));
+    if (barChart) { barChart.destroy(); barChart = null; }
+    if (lineChart) { lineChart.destroy(); lineChart = null; }
     document.getElementById('statusBanner').style.display = 'none';
-    render(data);
+    renderView();
     document.getElementById('lastUpdated').textContent =
       'Actualizado ' + new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
     document.getElementById('rowCount').textContent = `${rows.length} registros`;
