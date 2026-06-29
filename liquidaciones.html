@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lagunas Green · Liquidaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,500&family=Schibsted+Grotesk:wght@400;500;700&family=Spline+Sans+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:       #0a0e09;
+    --surface:  #11170f;
+    --surface2: #161e13;
+    --border:   rgba(214,235,185,0.08);
+    --border2:  rgba(214,235,185,0.16);
+    --green:    #a7e163;
+    --green-dim:#5d7a3e;
+    --teal:     #4fd1c5;
+    --amber:    #f5c33b;
+    --red:      #f08c7d;
+    --text:     #edf3e3;
+    --muted:    #7d9070;
+    --faint:    #51604a;
+    --serif:    'Fraunces', serif;
+    --sans:     'Schibsted Grotesk', sans-serif;
+    --mono:     'Spline Sans Mono', monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scrollbar-color:var(--faint) transparent}
+  body{
+    background:
+      radial-gradient(1100px 520px at 85% -8%, rgba(167,225,99,.08), transparent 62%),
+      radial-gradient(800px 480px at -12% 108%, rgba(79,209,197,.06), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    max-width:1060px;
+    margin:0 auto;
+    padding:0 0 56px;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::after{
+    content:'';position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* HEADER */
+  .header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:28px 24px 20px;
+    border-bottom:1px solid var(--border);
+    gap:12px;flex-wrap:wrap;
+  }
+  .header-left{display:flex;align-items:center;gap:14px}
+  .logo{width:38px;height:38px;flex-shrink:0}
+  .header h1{font-family:var(--serif);font-size:1.45rem;font-weight:600;line-height:1.15}
+  .header h1 span{color:var(--muted);font-weight:400;font-size:.9rem;display:block;margin-top:2px}
+  .header-right{display:flex;align-items:center;gap:10px}
+  .badge-periodo{
+    font-family:var(--mono);font-size:.72rem;
+    background:var(--surface2);border:1px solid var(--border2);
+    border-radius:6px;padding:4px 10px;color:var(--muted);
+  }
+  .refresh-btn{
+    background:none;border:1px solid var(--border2);border-radius:8px;
+    color:var(--muted);font-size:.8rem;padding:6px 12px;cursor:pointer;
+    font-family:var(--sans);transition:all .15s;
+  }
+  .refresh-btn:hover{border-color:var(--green-dim);color:var(--green)}
+
+  /* FILTROS */
+  .filters{padding:16px 24px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+  .filter-chip{
+    font-size:.78rem;padding:5px 13px;border-radius:20px;cursor:pointer;
+    border:1px solid var(--border2);background:var(--surface);color:var(--muted);
+    font-family:var(--sans);transition:all .15s;white-space:nowrap;
+  }
+  .filter-chip:hover{border-color:var(--green-dim);color:var(--text)}
+  .filter-chip.active{background:var(--green);color:#0a0e09;border-color:var(--green);font-weight:700}
+  .filter-label{font-size:.75rem;color:var(--faint);align-self:center;font-family:var(--mono)}
+
+  /* KPIs */
+  .kpi-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:1px;background:var(--border);
+    border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  }
+  .kpi{
+    background:var(--surface);padding:22px 20px;
+    animation:fadeUp .35s ease both;
+  }
+  .kpi:nth-child(2){animation-delay:.05s}
+  .kpi:nth-child(3){animation-delay:.1s}
+  .kpi:nth-child(4){animation-delay:.15s}
+  .kpi:nth-child(5){animation-delay:.2s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .kpi-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .kpi-value{font-family:var(--mono);font-size:1.8rem;font-weight:700;line-height:1;color:var(--green)}
+  .kpi-sub{font-size:.75rem;color:var(--muted);margin-top:6px;font-family:var(--mono)}
+  .kpi-value.amber{color:var(--amber)}
+  .kpi-value.teal{color:var(--teal)}
+  .kpi-value.red{color:var(--red)}
+
+  /* SECCIÓN */
+  .section{padding:28px 24px 0}
+  .section-title{
+    font-family:var(--serif);font-size:1.05rem;font-weight:600;
+    margin-bottom:16px;color:var(--text);
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  /* TABLA CAMPAÑAS */
+  .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:.84rem}
+  thead th{
+    background:var(--surface2);padding:10px 14px;
+    text-align:left;font-weight:500;color:var(--muted);
+    font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  thead th.num{text-align:right}
+  tbody tr{transition:background .1s}
+  tbody tr:hover{background:var(--surface2)}
+  tbody tr+tr{border-top:1px solid var(--border)}
+  td{padding:11px 14px;color:var(--text);vertical-align:middle}
+  td.num{text-align:right;font-family:var(--mono);font-size:.82rem}
+  td.periodo{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+  td.cliente-tag{
+    display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;
+    font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  }
+  .tag-paijan{background:rgba(79,209,197,.15);color:var(--teal)}
+  .tag-nathanael{background:rgba(245,195,59,.13);color:var(--amber)}
+  .tag-total{background:rgba(167,225,99,.12);color:var(--green)}
+  td.saldo{color:var(--red);font-family:var(--mono);font-size:.82rem}
+  td.saldo.ok{color:var(--green)}
+
+  /* GRÁFICOS */
+  .charts-grid{
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:16px;padding:28px 24px 0;
+  }
+  @media(max-width:640px){.charts-grid{grid-template-columns:1fr}}
+  .chart-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:18px 16px;
+  }
+  .chart-title{font-size:.78rem;color:var(--muted);margin-bottom:14px;font-family:var(--mono)}
+  .chart-wrap{position:relative;height:200px}
+
+  /* TABLA ENTREGAS */
+  .entregas-section{padding:28px 24px 0}
+  .entregas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .row-count{font-size:.75rem;color:var(--faint);font-family:var(--mono)}
+
+  /* LOADING / ERROR */
+  .state{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:320px;gap:12px;color:var(--muted);font-size:.9rem;
+  }
+  .spinner{
+    width:28px;height:28px;border:2px solid var(--border2);
+    border-top-color:var(--green);border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* LAST UPDATE */
+  .footer{text-align:center;padding:32px 24px 8px;font-size:.72rem;color:var(--faint);font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <svg class="logo" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="19" cy="19" r="19" fill="#11170f"/>
+      <path d="M19 8 C16 12 13 17 15 22 C17 27 22 28 24 24 C26 20 24 14 19 8Z" fill="#a7e163" opacity=".9"/>
+      <path d="M19 8 C22 13 25 18 23 23 C21 27 17 27 15 23 C13 18 16 13 19 8Z" fill="#5d7a3e" opacity=".6"/>
+      <line x1="19" y1="22" x2="19" y2="32" stroke="#a7e163" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <h1>Lagunas Green<span>Liquidaciones de espárrago</span></h1>
+  </div>
+  <div class="header-right">
+    <span class="badge-periodo" id="badgePeriodo">—</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Actualizar</button>
+  </div>
+</header>
+
+<!-- FILTROS POR PERIODO -->
+<div class="filters" id="filtersContainer">
+  <span class="filter-label">Campaña:</span>
+  <button class="filter-chip active" data-periodo="all" onclick="setFiltro(this,'all')">Todas</button>
+</div>
+
+<!-- KPIs -->
+<div id="kpiGrid" class="kpi-grid">
+  <div class="state"><div class="spinner"></div><span>Cargando datos…</span></div>
+</div>
+
+<!-- TABLA POR CAMPAÑA -->
+<div class="section">
+  <div class="section-title">Por campaña</div>
+  <div class="table-wrap">
+    <table id="tablaCampanas">
+      <thead>
+        <tr>
+          <th>Periodo</th>
+          <th>Cliente</th>
+          <th class="num">Días</th>
+          <th class="num">Cajas</th>
+          <th class="num">Kg Neto</th>
+          <th class="num">Precio prom.</th>
+          <th class="num">Total USD</th>
+          <th class="num">Detracción</th>
+          <th class="num">Saldo</th>
+        </tr>
+      </thead>
+      <tbody id="campanasTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GRÁFICOS -->
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-title">Precio USD/kg por entrega</div>
+    <div class="chart-wrap"><canvas id="chartPrecio"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Kg Neto por entrega</div>
+    <div class="chart-wrap"><canvas id="chartKg"></canvas></div>
+  </div>
+</div>
+
+<!-- TABLA DE ENTREGAS -->
+<div class="entregas-section">
+  <div class="section-title">Entregas detalladas</div>
+  <div class="entregas-header">
+    <span class="row-count" id="rowCount">— entregas</span>
+  </div>
+  <div class="table-wrap">
+    <table id="tablaEntregas">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Periodo</th>
+          <th>Guía</th>
+          <th class="num">Cajas</th>
+          <th class="num">Kg Neto</th>
+          <th class="num">Precio</th>
+          <th class="num">Total Día</th>
+        </tr>
+      </thead>
+      <tbody id="entregasTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer" id="footer">—</div>
+
+<script>
+const SHEET_ID  = '1BoE2IGMCHbtyZ2_QLmz0_qzILfv8zB8IW4x8TMrdsGY';
+const GID       = '505628585';
+const PUB_KEY   = '2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8';
+const CSV_URL   = `https://docs.google.com/spreadsheets/d/e/${PUB_KEY}/pub?gid=${GID}&single=true&output=csv`;
+// Fallback via gviz (si el pub falla)
+const GVIZ_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
+const REFRESH_MS = 5 * 60 * 1000;
+let filtroActivo = 'all';
+let allRows = [];
+let chartPrecio, chartKg;
+
+// ── COLORES ─────────────────────────────────────────
+const C = {
+  green:  '#a7e163', teal: '#4fd1c5', amber: '#f5c33b',
+  muted:  'rgba(214,235,185,.25)', border: 'rgba(214,235,185,.08)',
+  red:    '#f08c7d',
+};
+
+// ── UTILIDADES ───────────────────────────────────────
+function fmtUSD(n)  { return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtKg(n)   { return n.toLocaleString('es-PE',{minimumFractionDigits:1,maximumFractionDigits:1}) + ' kg'; }
+function fmtNum(n)  { return n.toLocaleString('es-PE'); }
+function shortCliente(s) {
+  if (!s) return '—';
+  s = s.toUpperCase();
+  if (s.includes('PAIJAN') || s.includes('PAIJÁN')) return 'Paiján';
+  if (s.includes('NATHANAEL')) return 'Nathanael';
+  return s.split(' ').slice(0,2).join(' ');
+}
+function tagCliente(s) {
+  const sc = shortCliente(s);
+  const cls = sc === 'Paiján' ? 'tag-paijan' : sc === 'Nathanael' ? 'tag-nathanael' : 'tag-total';
+  return `<span class="cliente-tag ${cls}">${sc}</span>`;
+}
+function parseNum(s) {
+  if (!s || s.trim() === '') return 0;
+  // quitar espacios, comas de miles, etc.
+  return parseFloat(s.replace(/\s/g,'').replace(/,/g,'.')) || 0;
+}
+function parseFecha(s) {
+  if (!s) return null;
+  // formatos posibles: DD/MM/YYYY, YYYY-MM-DD, M/D/YYYY
+  const parts = s.trim().split(/[\/\-]/);
+  if (parts.length < 3) return null;
+  if (parts[0].length === 4) return new Date(+parts[0], +parts[1]-1, +parts[2]);
+  if (parts[2].length === 4) return new Date(+parts[2], +parts[1]-1, +parts[0]);
+  return new Date(s);
+}
+function fmtFecha(d) {
+  if (!d) return '—';
+  return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+// ── PARSE CSV ────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+
+  return lines.slice(1).map(line => {
+    // CSV simple: split por coma respetando comillas
+    const cells = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { cells.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    cells.push(cur.trim());
+
+    const row = {};
+    headers.forEach((h,i) => { row[h] = cells[i] || ''; });
+    return row;
+  }).filter(r => r['Fecha'] || r['Guia'] || r['Periodo']); // filtrar filas vacías
+}
+
+// ── CARGA DE DATOS ────────────────────────────────────
+async function loadData() {
+  try {
+    let res = await fetch(CSV_URL + '&t=' + Date.now());
+    if (!res.ok) res = await fetch(GVIZ_URL + '&t=' + Date.now());
+    const text = await res.text();
+    allRows = parseCSV(text);
+    if (allRows.length === 0) throw new Error('Sin datos');
+    render();
+    document.getElementById('footer').textContent =
+      'Actualizado ' + new Date().toLocaleString('es-PE') + ' · Refresh automático cada 5 min';
+  } catch(e) {
+    document.getElementById('kpiGrid').innerHTML =
+      `<div class="state"><span style="color:var(--red)">Error al cargar datos</span><span style="font-size:.75rem;color:var(--faint)">${e.message}</span></div>`;
+  }
+}
+
+// ── FILTRO ────────────────────────────────────────────
+function setFiltro(el, periodo) {
+  filtroActivo = periodo;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function rowsFiltrados() {
+  if (filtroActivo === 'all') return allRows;
+  return allRows.filter(r => r['Periodo'] === filtroActivo);
+}
+
+// ── RENDER PRINCIPAL ──────────────────────────────────
+function render() {
+  buildFiltros();
+  const rows = rowsFiltrados();
+
+  // calcular métricas base
+  let totalPesoNeto = 0, totalUSD = 0, totalCajas = 0;
+  const periodosMap = {};  // periodo → {pesoNeto, totalUSD, cajas, dias, cliente, detraccion, saldo}
+  const precioPorEntrega = [];
+
+  rows.forEach(r => {
+    const pn   = parseNum(r['Peso Neto']);
+    const td   = parseNum(r['Total Dia']);
+    const precio = parseNum(r['Precio']);
+    const cajas = parseNum(r['Num Cajas']);
+    const periodo = r['Periodo'] || '—';
+    const cliente = r['Cliente'] || '';
+    const det    = parseNum(r['Detraccion']);
+    const saldo  = parseNum(r['Saldo por Cancelar']);
+    const fecha  = parseFecha(r['Fecha']);
+
+    totalPesoNeto += pn;
+    totalUSD      += td;
+    totalCajas    += cajas;
+
+    if (!periodosMap[periodo]) {
+      periodosMap[periodo] = {pesoNeto:0,totalUSD:0,cajas:0,dias:0,cliente,detraccion:det,saldo,fechas:[]};
+    }
+    periodosMap[periodo].pesoNeto  += pn;
+    periodosMap[periodo].totalUSD  += td;
+    periodosMap[periodo].cajas     += cajas;
+    periodosMap[periodo].dias      += 1;
+    // detraccion y saldo: tomar el último valor (se repite en todo el periodo)
+    if (det > 0)   periodosMap[periodo].detraccion = det;
+    if (saldo >= 0) periodosMap[periodo].saldo = saldo;
+    if (fecha)     periodosMap[periodo].fechas.push(fecha);
+
+    if (precio > 0 && pn > 0) {
+      precioPorEntrega.push({ fecha, precio, pn, cliente });
+    }
+  });
+
+  const precioPromedio = totalPesoNeto > 0 ? totalUSD / totalPesoNeto : 0;
+  const totalSaldo = Object.values(periodosMap).reduce((a,p) => a + p.saldo, 0);
+
+  renderKPIs({totalPesoNeto, totalUSD, precioPromedio, totalCajas, totalSaldo, nPeriodos: Object.keys(periodosMap).length});
+  renderTablaCampanas(periodosMap);
+  renderCharts(rows, precioPorEntrega);
+  renderTablaEntregas(rows);
+  renderBadge();
+}
+
+// ── KPIs ──────────────────────────────────────────────
+function renderKPIs({totalPesoNeto, totalUSD, precioPromedio, totalCajas, totalSaldo, nPeriodos}) {
+  const saldoClass = totalSaldo > 0 ? 'red' : '';
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-label">Total USD vendido</div>
+      <div class="kpi-value">${fmtUSD(totalUSD)}</div>
+      <div class="kpi-sub">${nPeriodos} campaña${nPeriodos !== 1?'s':''}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Peso Neto total</div>
+      <div class="kpi-value teal">${fmtKg(totalPesoNeto)}</div>
+      <div class="kpi-sub">${fmtNum(Math.round(totalCajas))} cajas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Precio promedio</div>
+      <div class="kpi-value amber">${fmtUSD(precioPromedio)}<span style="font-size:1rem">/kg</span></div>
+      <div class="kpi-sub">ponderado por Kg Neto</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Saldo por cobrar</div>
+      <div class="kpi-value ${saldoClass}">${fmtUSD(totalSaldo)}</div>
+      <div class="kpi-sub">${totalSaldo <= 0 ? '✓ Liquidado' : 'pendiente'}</div>
+    </div>
+  `;
+}
+
+// ── TABLA CAMPAÑAS ────────────────────────────────────
+function renderTablaCampanas(map) {
+  const tbody = document.getElementById('campanasTbody');
+  const periodos = Object.keys(map).sort();
+
+  let html = '';
+  periodos.forEach(p => {
+    const d = map[p];
+    const prom = d.pesoNeto > 0 ? d.totalUSD / d.pesoNeto : 0;
+    const saldoClass = d.saldo > 0 ? 'saldo' : 'saldo ok';
+    html += `<tr>
+      <td class="periodo">${p}</td>
+      <td>${tagCliente(d.cliente)}</td>
+      <td class="num">${fmtNum(d.dias)}</td>
+      <td class="num">${fmtNum(Math.round(d.cajas))}</td>
+      <td class="num">${fmtKg(d.pesoNeto)}</td>
+      <td class="num">${fmtUSD(prom)}</td>
+      <td class="num">${fmtUSD(d.totalUSD)}</td>
+      <td class="num" style="color:var(--muted)">${d.detraccion > 0 ? fmtUSD(d.detraccion) : '—'}</td>
+      <td class="${saldoClass}">${fmtUSD(d.saldo)}</td>
+    </tr>`;
+  });
+
+  // fila de totales
+  const tots = Object.values(map);
+  const totPeso = tots.reduce((a,v)=>a+v.pesoNeto,0);
+  const totUSD  = tots.reduce((a,v)=>a+v.totalUSD,0);
+  const totCaj  = tots.reduce((a,v)=>a+v.cajas,0);
+  const totDet  = tots.reduce((a,v)=>a+v.detraccion,0);
+  const totSaldo= tots.reduce((a,v)=>a+v.saldo,0);
+  const totProm = totPeso > 0 ? totUSD/totPeso : 0;
+  html += `<tr style="border-top:1px solid var(--border2);font-weight:700">
+    <td colspan="2"><span class="cliente-tag tag-total">TOTAL</span></td>
+    <td class="num">${fmtNum(tots.reduce((a,v)=>a+v.dias,0))}</td>
+    <td class="num">${fmtNum(Math.round(totCaj))}</td>
+    <td class="num">${fmtKg(totPeso)}</td>
+    <td class="num">${fmtUSD(totProm)}</td>
+    <td class="num">${fmtUSD(totUSD)}</td>
+    <td class="num" style="color:var(--muted)">${totDet > 0 ? fmtUSD(totDet) : '—'}</td>
+    <td class="${totSaldo > 0 ? 'saldo' : 'saldo ok'}">${fmtUSD(totSaldo)}</td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+// ── GRÁFICOS ──────────────────────────────────────────
+const CHART_DEFAULTS = {
+  plugins:{ legend:{display:false}, tooltip:{
+    backgroundColor:'#11170f', borderColor:'rgba(214,235,185,.2)', borderWidth:1,
+    titleColor:'#edf3e3', bodyColor:'#7d9070',
+    titleFont:{family:"'Spline Sans Mono',monospace",size:11},
+    bodyFont:{family:"'Spline Sans Mono',monospace",size:11},
+  }},
+  scales:{
+    x:{ticks:{color:'#51604a',font:{family:"'Spline Sans Mono',monospace",size:10}},grid:{color:'rgba(214,235,185,.04)'}},
+    y:{ticks:{color:'#51604a',font:{family:"'Spline Sans Mono',monospace",size:10}},grid:{color:'rgba(214,235,185,.04)'}},
+  },
+  animation:{duration:400},
+};
+
+function clienteColor(s) {
+  const sc = shortCliente(s);
+  if (sc === 'Paiján') return C.teal;
+  if (sc === 'Nathanael') return C.amber;
+  return C.green;
+}
+
+function renderCharts(rows, precioPorEntrega) {
+  // Ordenar por fecha
+  const sorted = [...precioPorEntrega].sort((a,b) => {
+    if (!a.fecha && !b.fecha) return 0;
+    if (!a.fecha) return 1;
+    if (!b.fecha) return -1;
+    return a.fecha - b.fecha;
+  });
+
+  const labels   = sorted.map(r => r.fecha ? fmtFecha(r.fecha) : '—');
+  const precios  = sorted.map(r => r.precio);
+  const kgs      = sorted.map(r => r.pn);
+  const colores  = sorted.map(r => clienteColor(r.cliente));
+
+  // Precio
+  if (chartPrecio) chartPrecio.destroy();
+  chartPrecio = new Chart(document.getElementById('chartPrecio'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        data: precios,
+        borderColor: C.amber,
+        backgroundColor: 'rgba(245,195,59,.08)',
+        pointBackgroundColor: colores,
+        pointRadius: 4, pointHoverRadius: 6,
+        tension:.3, fill:true, borderWidth:1.5,
+      }],
+    },
+    options:{
+      ...CHART_DEFAULTS,
+      scales:{
+        ...CHART_DEFAULTS.scales,
+        y:{ ...CHART_DEFAULTS.scales.y, ticks:{ ...CHART_DEFAULTS.scales.y.ticks, callback: v => '$'+v } }
+      },
+      plugins:{ ...CHART_DEFAULTS.plugins, tooltip:{
+        ...CHART_DEFAULTS.plugins.tooltip,
+        callbacks:{
+          label: ctx => `  $${ctx.parsed.y.toFixed(3)}/kg`,
+          afterLabel: ctx => `  ${shortCliente(sorted[ctx.dataIndex]?.cliente || '')}`,
+        }
+      }},
+    }
+  });
+
+  // Kg
+  if (chartKg) chartKg.destroy();
+  chartKg = new Chart(document.getElementById('chartKg'), {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        data: kgs,
+        backgroundColor: colores.map(c => c + '99'),
+        borderColor: colores,
+        borderWidth:1, borderRadius:3,
+      }],
+    },
+    options:{
+      ...CHART_DEFAULTS,
+      scales:{
+        ...CHART_DEFAULTS.scales,
+        y:{ ...CHART_DEFAULTS.scales.y, ticks:{ ...CHART_DEFAULTS.scales.y.ticks, callback: v => v+'kg' } }
+      },
+      plugins:{ ...CHART_DEFAULTS.plugins, tooltip:{
+        ...CHART_DEFAULTS.plugins.tooltip,
+        callbacks:{
+          label: ctx => `  ${fmtKg(ctx.parsed.y)}`,
+          afterLabel: ctx => `  ${shortCliente(sorted[ctx.dataIndex]?.cliente || '')}`,
+        }
+      }},
+    }
+  });
+}
+
+// ── TABLA ENTREGAS ────────────────────────────────────
+function renderTablaEntregas(rows) {
+  const sorted = [...rows].sort((a,b) => {
+    const fa = parseFecha(a['Fecha']), fb = parseFecha(b['Fecha']);
+    if (!fa && !fb) return 0; if (!fa) return 1; if (!fb) return -1;
+    return fa - fb;
+  });
+
+  document.getElementById('rowCount').textContent = fmtNum(sorted.length) + ' entregas';
+
+  const tbody = document.getElementById('entregasTbody');
+  tbody.innerHTML = sorted.map(r => {
+    const fecha  = parseFecha(r['Fecha']);
+    const td     = parseNum(r['Total Dia']);
+    const pn     = parseNum(r['Peso Neto']);
+    const precio = parseNum(r['Precio']);
+    const cajas  = parseNum(r['Num Cajas']);
+    return `<tr>
+      <td class="periodo">${fecha ? fmtFecha(fecha) : r['Fecha'] || '—'}</td>
+      <td>${tagCliente(r['Cliente'])}</td>
+      <td class="periodo">${r['Periodo'] || '—'}</td>
+      <td class="periodo">${r['Guia'] || '—'}</td>
+      <td class="num">${fmtNum(Math.round(cajas))}</td>
+      <td class="num">${fmtKg(pn)}</td>
+      <td class="num">${precio > 0 ? fmtUSD(precio) : '—'}</td>
+      <td class="num" style="color:var(--green)">${td > 0 ? fmtUSD(td) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── FILTROS Y BADGE ───────────────────────────────────
+function buildFiltros() {
+  const periodos = [...new Set(allRows.map(r => r['Periodo']).filter(Boolean))].sort();
+  const container = document.getElementById('filtersContainer');
+
+  // mantener el chip "Todas" y reconstruir el resto
+  const existing = new Set([...container.querySelectorAll('[data-periodo]')].map(el => el.dataset.periodo));
+  periodos.forEach(p => {
+    if (!existing.has(p)) {
+      const btn = document.createElement('button');
+      btn.className = 'filter-chip';
+      btn.dataset.periodo = p;
+      btn.textContent = p;
+      btn.onclick = function() { setFiltro(this, p); };
+      container.appendChild(btn);
+    }
+  });
+}
+
+function renderBadge() {
+  const badge = document.getElementById('badgePeriodo');
+  if (filtroActivo === 'all') {
+    const periodos = [...new Set(allRows.map(r=>r['Periodo']).filter(Boolean))];
+    badge.textContent = periodos.length + ' campaña' + (periodos.length!==1?'s':'');
+  } else {
+    badge.textContent = filtroActivo;
+  }
+}
+
+// ── ARRANQUE ──────────────────────────────────────────
+loadData();
+setInterval(loadData, REFRESH_MS);
+</script>
+</body>
+</html>
