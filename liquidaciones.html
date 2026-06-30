@@ -316,16 +316,6 @@ const CSV_URL  = `https://docs.google.com/spreadsheets/d/e/${PUB_KEY}/pub?gid=${
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 const REFRESH_MS = 5 * 60 * 1000;
 
-// ── HECTÁREAS POR PERIODO ────────────────────────────────────────────────────
-// Actualizar con los valores reales de cada campaña.
-// La clave es el texto exacto de la columna "Periodo" en el Sheet.
-const HECTAREAS = {
-  '26/02/2025 - 15/03/2025': 2,
-  '14/07/2025 - 24/08/2025': 5.5,
-  '15/12/2025 - 18/01/2026': 5.5,
-  // Agregar más campañas aquí:
-  // 'DD/MM/YYYY - DD/MM/YYYY': X,
-};
 
 // ── ESTADO ────────────────────────────────────────────────────────────────────
 let filtroActivo = 'all';
@@ -432,7 +422,7 @@ function calcPeriodos(rows) {
         dias: new Set(),
         cajas: 0, pb: 0, tara: 0, pn: 0,
         totalUSD: 0, detraccion: 0, saldo: 0,
-        precios: [], pnPorDia: {},
+        ha: null, precios: [], pnPorDia: {},
       };
     }
     const d = map[periodo];
@@ -445,6 +435,8 @@ function calcPeriodos(rows) {
     const precio= parseNum(r['Precio']);
     const det   = parseNum(r['Detraccion']);
     const saldo = parseNum(r['Saldo por Cancelar']);
+    const ha    = parseNum(r['Hectareas']);
+    if (ha > 0 && d.ha === null) d.ha = ha;
 
     if (fecha) d.dias.add(fecha);
     d.cajas    += cajas;
@@ -474,10 +466,8 @@ function calcPeriodos(rows) {
     d.taraPct   = d.pb > 0 ? (d.tara / d.pb) * 100 : null;
     d.promCajas = d.cajas / d.diasCount;
     d.promPN    = d.pn / d.diasCount;
-    const ha    = HECTAREAS[p] ?? null;
-    d.ha        = ha;
-    d.prodPorHa = ha ? d.pn / ha : null;
-    d.ingPorHa  = ha ? d.totalUSD / ha : null;
+    d.prodPorHa = d.ha ? d.pn / d.ha : null;
+    d.ingPorHa  = d.ha ? d.totalUSD / d.ha : null;
   });
 
   return map;
