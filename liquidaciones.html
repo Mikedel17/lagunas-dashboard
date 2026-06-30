@@ -487,13 +487,18 @@ function render() {
 
 // ── KPIs GLOBALES ─────────────────────────────────────────────────────────────
 function renderKPIsGlobales(map) {
-  const vals = Object.values(map);
+  const vals    = Object.values(map);
   const totUSD  = vals.reduce((a,v)=>a+v.totalUSD,0);
+  const totPB   = vals.reduce((a,v)=>a+v.pb,0);
   const totPN   = vals.reduce((a,v)=>a+v.pn,0);
   const totCaj  = vals.reduce((a,v)=>a+v.cajas,0);
-  const totSaldo= vals.reduce((a,v)=>a+v.saldo,0);
   const precProm= totPN > 0 ? totUSD/totPN : 0;
   const n       = vals.length;
+  // kg promedio por hectárea: solo campañas con ha definida
+  const valsConHa = vals.filter(v=>v.ha);
+  const totHa   = valsConHa.reduce((a,v)=>a+v.ha,0);
+  const totPNHa = valsConHa.reduce((a,v)=>a+v.pn,0);
+  const kgPorHa = totHa > 0 ? totPNHa/totHa : null;
 
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi">
@@ -502,9 +507,14 @@ function renderKPIsGlobales(map) {
       <div class="kpi-sub">${n} campaña${n!==1?'s':''}</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Peso Neto Total</div>
-      <div class="kpi-value teal">${fmtKg(totPN)}</div>
+      <div class="kpi-label">Peso Bruto Total</div>
+      <div class="kpi-value" style="font-size:1.45rem">${fmtKg(totPB)}</div>
       <div class="kpi-sub">${fmtNum(Math.round(totCaj))} cajas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Peso Neto Total</div>
+      <div class="kpi-value teal" style="font-size:1.45rem">${fmtKg(totPN)}</div>
+      <div class="kpi-sub">rendimiento ${totPB>0?fmtPct(totPN/totPB*100):'—'}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Precio Promedio</div>
@@ -512,9 +522,9 @@ function renderKPIsGlobales(map) {
       <div class="kpi-sub">ponderado por Kg Neto</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Saldo por Cobrar</div>
-      <div class="kpi-value ${totSaldo>0?'red':''}">${fmtUSD(totSaldo)}</div>
-      <div class="kpi-sub">${totSaldo<=0?'✓ Liquidado':'pendiente'}</div>
+      <div class="kpi-label">Kg Prom / Hectárea</div>
+      <div class="kpi-value" style="color:var(--green);font-size:1.45rem">${kgPorHa!==null?fmtKgD(kgPorHa)+' kg':'—'}</div>
+      <div class="kpi-sub">${totHa>0?totHa+' Ha totales':'sin Ha registradas'}</div>
     </div>
   `;
 }
