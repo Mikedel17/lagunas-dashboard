@@ -133,12 +133,6 @@
   .campana-ingreso{
     font-family:var(--mono);font-size:1.05rem;font-weight:700;color:var(--green);
   }
-  .campana-saldo{
-    font-family:var(--mono);font-size:.78rem;padding:3px 10px;
-    border-radius:20px;border:1px solid;
-  }
-  .campana-saldo.pendiente{color:var(--red);border-color:rgba(240,140,125,.3);background:rgba(240,140,125,.08)}
-  .campana-saldo.ok{color:var(--green);border-color:rgba(167,225,99,.3);background:rgba(167,225,99,.08)}
 
   /* grid de métricas dentro de la tarjeta */
   .kpi-campana-grid{
@@ -191,6 +185,13 @@
   .entregas-section{padding:28px 24px 0}
   .entregas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .row-count{font-size:.75rem;color:var(--faint);font-family:var(--mono)}
+  .toggle-entregas{
+    background:none;border:1px solid var(--border2);border-radius:8px;
+    color:var(--muted);font-size:.8rem;padding:6px 14px;cursor:pointer;
+    font-family:var(--sans);transition:all .15s;
+  }
+  .toggle-entregas:hover{border-color:var(--green-dim);color:var(--green)}
+  #entregasBody{display:none}
   .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
   table{width:100%;border-collapse:collapse;font-size:.84rem}
   thead th{
@@ -282,25 +283,28 @@
   <div class="section-title">Entregas detalladas</div>
   <div class="entregas-header">
     <span class="row-count" id="rowCount">— entregas</span>
+    <button class="toggle-entregas" id="toggleEntregas" onclick="toggleTabla()">▼ Ver entregas</button>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Cliente</th>
-          <th class="mono">Periodo</th>
-          <th>Guía</th>
-          <th class="r">Cajas</th>
-          <th class="r">Peso Bruto</th>
-          <th class="r">Tara</th>
-          <th class="r">Kg Neto</th>
-          <th class="r">Precio</th>
-          <th class="r">Total Día</th>
-        </tr>
-      </thead>
-      <tbody id="entregasTbody"></tbody>
-    </table>
+  <div id="entregasBody">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th class="mono">Periodo</th>
+            <th>Guía</th>
+            <th class="r">Cajas</th>
+            <th class="r">Peso Bruto</th>
+            <th class="r">Tara</th>
+            <th class="r">Kg Neto</th>
+            <th class="r">Precio</th>
+            <th class="r">Total Día</th>
+          </tr>
+        </thead>
+        <tbody id="entregasTbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -541,14 +545,12 @@ function kcDiv(label) {
 }
 
 function renderCampanas(map, rows) {
-  const container = document.getElementById('campanasGrid');
-  const periodos  = Object.keys(map).sort();
+  const container  = document.getElementById('campanasGrid');
+  const periodos   = Object.keys(map).sort();
+  const mostrarCliente = filtroActivo !== 'all';
 
   container.innerHTML = periodos.map(p => {
     const d = map[p];
-    const saldoClass = d.saldo > 0 ? 'pendiente' : 'ok';
-    const saldoLabel = d.saldo > 0 ? `Saldo: ${fmtUSD(d.saldo)}` : '✓ Liquidado';
-
     const haStr      = d.ha !== null ? d.ha + ' Ha' : '—';
     const prodPorHa  = d.prodPorHa !== null ? fmtKgD(d.prodPorHa) + ' kg' : '<span style="color:var(--faint)">—</span>';
     const ingPorHa   = d.ingPorHa  !== null ? fmtUSD(d.ingPorHa) : '<span style="color:var(--faint)">—</span>';
@@ -558,11 +560,10 @@ function renderCampanas(map, rows) {
       <div class="campana-header">
         <div style="display:flex;align-items:center;gap:12px">
           <span class="campana-periodo">${p}</span>
-          ${tagCliente(d.cliente)}
+          ${mostrarCliente ? tagCliente(d.cliente) : ''}
         </div>
         <div class="campana-header-right">
           <span class="campana-ingreso">${fmtUSD(d.totalUSD)}</span>
-          <span class="campana-saldo ${saldoClass}">${saldoLabel}</span>
         </div>
       </div>
       <div class="kpi-campana-grid">
@@ -715,6 +716,15 @@ function renderBadge() {
   const n = [...new Set(allRows.map(r=>r['Periodo']).filter(Boolean))].length;
   document.getElementById('badgePeriodo').textContent =
     filtroActivo==='all' ? n+' campaña'+(n!==1?'s':'') : filtroActivo;
+}
+
+// ── TOGGLE ENTREGAS ───────────────────────────────────────────────────────────
+function toggleTabla() {
+  const body = document.getElementById('entregasBody');
+  const btn  = document.getElementById('toggleEntregas');
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '▼ Ver entregas' : '▲ Ocultar entregas';
 }
 
 // ── ARRANQUE ──────────────────────────────────────────────────────────────────
