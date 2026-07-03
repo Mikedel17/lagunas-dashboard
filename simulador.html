@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lagunas Green · Simulador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,500&family=Schibsted+Grotesk:wght@400;500;700&family=Spline+Sans+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#0a0e09;--surface:#11170f;--surface2:#161e13;
+  --border:rgba(214,235,185,.08);--border2:rgba(214,235,185,.16);
+  --green:#a7e163;--green-dim:#5d7a3e;
+  --teal:#4fd1c5;--amber:#f5c33b;--red:#f08c7d;
+  --text:#edf3e3;--muted:#7d9070;--faint:#51604a;
+  --serif:'Fraunces',serif;--sans:'Schibsted Grotesk',sans-serif;--mono:'Spline Sans Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-color:var(--faint) transparent}
+body{
+  background:
+    radial-gradient(1100px 520px at 85% -8%,rgba(167,225,99,.08),transparent 62%),
+    radial-gradient(800px 480px at -12% 108%,rgba(79,209,197,.06),transparent 60%),
+    var(--bg);
+  color:var(--text);font-family:var(--sans);
+  max-width:900px;margin:0 auto;padding:0 0 64px;
+  -webkit-font-smoothing:antialiased;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* HEADER */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:24px 20px 18px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap;
+}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;flex-shrink:0}
+.header h1{font-family:var(--serif);font-size:1.35rem;font-weight:600;line-height:1.15}
+.header h1 span{color:var(--muted);font-weight:400;font-size:.85rem;display:block;margin-top:2px}
+.header-right{display:flex;align-items:center;gap:8px}
+.badge{font-family:var(--mono);font-size:.7rem;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:4px 9px;color:var(--muted)}
+.btn-ghost{background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:.78rem;padding:5px 11px;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.btn-ghost:hover{border-color:var(--green-dim);color:var(--green)}
+
+/* PRESETS */
+.presets{padding:12px 20px;display:flex;gap:7px;flex-wrap:wrap;border-bottom:1px solid var(--border);align-items:center}
+.preset-label{font-size:.72rem;color:var(--faint);font-family:var(--mono);white-space:nowrap}
+.chip{font-size:.76rem;padding:5px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--green-dim);color:var(--text)}
+.chip.active{background:var(--green);color:#0a0e09;border-color:var(--green);font-weight:700}
+
+/* SLIDERS */
+.controls{padding:20px}
+.ctl{margin-bottom:18px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.ctl-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.ctl-val{font-family:var(--mono);font-size:1.05rem;font-weight:700;color:var(--green)}
+.ctl-val.amber{color:var(--amber)}.ctl-val.teal{color:var(--teal)}.ctl-val.muted{color:var(--faint)}
+.ctl-range{display:flex;justify-content:space-between;font-size:.62rem;color:var(--faint);font-family:var(--mono);margin-top:4px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;display:block}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--surface2);border:1px solid var(--border2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--green);border:3px solid #0a0e09;box-shadow:0 0 0 1px var(--green-dim);margin-top:-9.5px}
+input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:var(--surface2);border:1px solid var(--border2)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--green);border:3px solid #0a0e09;box-shadow:0 0 0 1px var(--green-dim)}
+
+/* RESULTADOS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.kpi{background:var(--surface);padding:18px}
+.kpi-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.kpi-val{font-family:var(--mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--green)}
+.kpi-val.amber{color:var(--amber)}.kpi-val.teal{color:var(--teal)}.kpi-val.red{color:var(--red)}.kpi-val.faint{color:var(--faint)}
+.kpi-sub{font-size:.7rem;color:var(--muted);margin-top:5px;font-family:var(--mono)}
+.kpi-sub.up{color:var(--green)}.kpi-sub.down{color:var(--red)}
+
+/* SECCIÓN */
+.section{padding:24px 20px 0}
+.section-title{font-family:var(--serif);font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.chart-title{font-size:.75rem;color:var(--muted);margin-bottom:12px;font-family:var(--mono)}
+.chart-wrap{position:relative;height:200px}
+
+.baseline-note{padding:14px 20px 0;font-size:.7rem;color:var(--faint);font-family:var(--mono);line-height:1.6}
+.baseline-note b{color:var(--muted);font-weight:500}
+.footer{text-align:center;padding:28px 20px 8px;font-size:.7rem;color:var(--faint);font-family:var(--mono)}
+
+@media(max-width:480px){.kpi-val{font-size:1.25rem}}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <svg class="logo" viewBox="0 0 38 38" fill="none">
+      <circle cx="19" cy="19" r="19" fill="#11170f"/>
+      <path d="M19 8 C16 12 13 17 15 22 C17 27 22 28 24 24 C26 20 24 14 19 8Z" fill="#a7e163" opacity=".9"/>
+      <path d="M19 8 C22 13 25 18 23 23 C21 27 17 27 15 23 C13 18 16 13 19 8Z" fill="#5d7a3e" opacity=".6"/>
+      <line x1="19" y1="22" x2="19" y2="32" stroke="#a7e163" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <h1>Lagunas Green<span>Simulador de próxima cosecha</span></h1>
+  </div>
+  <div class="header-right">
+    <span class="badge" id="badgeBase">baseline: cargando…</span>
+  </div>
+</header>
+
+<div class="presets">
+  <span class="preset-label">Escenario:</span>
+  <button class="chip" id="pCon" onclick="aplicarPreset('con',this)">Conservador</button>
+  <button class="chip active" id="pBase" onclick="aplicarPreset('base',this)">Base histórico</button>
+  <button class="chip" id="pOpt" onclick="aplicarPreset('opt',this)">Optimista</button>
+</div>
+
+<div class="controls">
+  <div class="ctl">
+    <div class="ctl-head"><span class="ctl-label">Hectáreas</span><span class="ctl-val teal" id="haOut">18.5</span></div>
+    <input type="range" id="ha" min="1" max="25" step="0.5" value="18.5">
+    <div class="ctl-range"><span>1</span><span>25 Ha</span></div>
+  </div>
+  <div class="ctl">
+    <div class="ctl-head"><span class="ctl-label">Producción · Kg neto / Ha</span><span class="ctl-val" id="kghaOut">1,000</span></div>
+    <input type="range" id="kgha" min="300" max="10000" step="50" value="1000">
+    <div class="ctl-range"><span>300</span><span>10,000 kg/Ha</span></div>
+  </div>
+  <div class="ctl">
+    <div class="ctl-head"><span class="ctl-label">Precio · USD / kg neto</span><span class="ctl-val amber" id="precioOut">$1.55</span></div>
+    <input type="range" id="precio" min="0.8" max="6" step="0.05" value="1.55">
+    <div class="ctl-range"><span>$0.80</span><span>$6.00</span></div>
+  </div>
+  <div class="ctl">
+    <div class="ctl-head"><span class="ctl-label">Rendimiento neto (neto/bruto)</span><span class="ctl-val" id="rendOut">88.6%</span></div>
+    <input type="range" id="rend" min="80" max="95" step="0.1" value="88.6">
+    <div class="ctl-range"><span>80%</span><span>95%</span></div>
+  </div>
+  <div class="ctl" style="margin-bottom:0">
+    <div class="ctl-head"><span class="ctl-label">Costo · USD / kg neto (opcional)</span><span class="ctl-val muted" id="costoOut">—</span></div>
+    <input type="range" id="costo" min="0" max="3" step="0.05" value="0">
+    <div class="ctl-range"><span>$0</span><span>$3.00</span></div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">Ingreso Estimado</div><div class="kpi-val" id="ingresoOut">—</div><div class="kpi-sub" id="deltaOut">—</div></div>
+  <div class="kpi"><div class="kpi-label">Peso Neto</div><div class="kpi-val teal" style="font-size:1.25rem" id="netoOut">—</div><div class="kpi-sub" id="brutoOut">—</div></div>
+  <div class="kpi"><div class="kpi-label">Cajas Estimadas</div><div class="kpi-val" style="font-size:1.25rem" id="cajasOut">—</div><div class="kpi-sub" id="cajasSubOut">—</div></div>
+  <div class="kpi"><div class="kpi-label">Margen Estimado</div><div class="kpi-val faint" id="margenOut">—</div><div class="kpi-sub" id="margenSubOut">mueve el costo/kg</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Escenario vs campañas reales</div>
+  <div class="chart-card">
+    <div class="chart-title">Ingreso USD por campaña · barra clara = tu escenario</div>
+    <div class="chart-wrap"><canvas id="chartComp"></canvas></div>
+  </div>
+</div>
+
+<div class="baseline-note" id="baselineNote">Cargando baseline desde el Sheet de Liquidaciones…</div>
+
+<div class="footer" id="footer">Modelo: neto = Ha × kg/Ha · bruto = neto ÷ rendimiento · ingreso = neto × precio</div>
+
+<script>
+const PUB_KEY  = '2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8';
+const SHEET_ID = '1BoE2IGMCHbtyZ2_QLmz0_qzILfv8zB8IW4x8TMrdsGY';
+const GID      = '505628585';
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/e/${PUB_KEY}/pub?gid=${GID}&single=true&output=csv`;
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
+// Baseline de respaldo si el Sheet no carga (valores al 2026-07-02)
+let BASE = {
+  ingresoCampana: 28245,   // USD promedio por campaña
+  kgCaja: 15.71,           // kg brutos por caja
+  precioProm: 1.56,        // USD/kg neto ponderado
+  rendPct: 88.6,           // neto/bruto %
+  kgHaCampana: 3903,       // kg neto/Ha (neto acumulado / Ha acumuladas)
+  ha: 4.5,                 // Ha promedio por campaña
+  precioMax: 2.55,
+  campanas: [],            // [{periodo, ingreso}]
+  origen: 'valores de respaldo',
+};
+
+const fmtUSD = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmtNum = n => Math.round(n).toLocaleString('es-PE');
+const fmtKg  = n => Math.round(n).toLocaleString('es-PE') + ' kg';
+
+function parseNum(s){
+  if(!s||!String(s).trim()) return 0;
+  return parseFloat(String(s).replace(/\s/g,'').replace(/,/g,'.')) || 0;
+}
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  if(lines.length<2) return [];
+  const headers=lines[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
+  return lines.slice(1).map(line=>{
+    const cells=[]; let cur='',inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;continue}
+      if(ch===','&&!inQ){cells.push(cur.trim());cur='';continue}
+      cur+=ch;
+    }
+    cells.push(cur.trim());
+    const row={};
+    headers.forEach((h,i)=>{row[h]=cells[i]||''});
+    return row;
+  }).filter(r=>r['Fecha']||r['Guia']||r['Periodo']);
+}
+
+async function cargarBaseline(){
+  try{
+    let res=await fetch(CSV_URL+'&t='+Date.now());
+    if(!res.ok) res=await fetch(GVIZ_URL+'&t='+Date.now());
+    const rows=parseCSV(await res.text());
+    if(!rows.length) throw new Error('Sin datos');
+
+    const map={};
+    let totUSD=0,totPB=0,totPN=0,totCajas=0,precioMax=0;
+    rows.forEach(r=>{
+      const p=r['Periodo']||'—';
+      if(!map[p]) map[p]={ingreso:0,pn:0,pb:0,ha:null};
+      const d=map[p];
+      const pn=parseNum(r['Peso Neto']),pb=parseNum(r['Peso Bruto']);
+      const td=parseNum(r['Total Dia']),cajas=parseNum(r['Num Cajas']);
+      const ha=parseNum(r['Hectareas']),precio=parseNum(r['Precio']);
+      d.ingreso+=td;d.pn+=pn;d.pb+=pb;
+      if(ha>0&&d.ha===null) d.ha=ha;
+      totUSD+=td;totPB+=pb;totPN+=pn;totCajas+=cajas;
+      if(precio>precioMax) precioMax=precio;
+    });
+    const campanas=Object.entries(map).map(([periodo,d])=>({periodo,ingreso:d.ingreso,pn:d.pn,ha:d.ha}));
+    const n=campanas.length||1;
+    const conHa=campanas.filter(c=>c.ha);
+    const totHa=conHa.reduce((a,c)=>a+c.ha,0);
+    const totPNHa=conHa.reduce((a,c)=>a+c.pn,0);
+
+    BASE={
+      ingresoCampana: totUSD/n,
+      kgCaja: totCajas>0?totPB/totCajas:BASE.kgCaja,
+      precioProm: totPN>0?totUSD/totPN:BASE.precioProm,
+      rendPct: totPB>0?(totPN/totPB)*100:BASE.rendPct,
+      // kg neto/Ha real: neto acumulado / Ha acumuladas (ponderado)
+      kgHaCampana: totHa>0?totPNHa/totHa:BASE.kgHaCampana,
+      // Ha por campaña: promedio de las campañas con dato (el sim es UNA campaña)
+      ha: conHa.length?Math.round((totHa/conHa.length)*2)/2:BASE.ha,
+      precioMax: precioMax||BASE.precioMax,
+      campanas,
+      origen: n+' campañas del Sheet',
+    };
+    document.getElementById('badgeBase').textContent='baseline: '+n+' campañas';
+  }catch(e){
+    document.getElementById('badgeBase').textContent='baseline: respaldo local';
+  }
+  aplicarPreset('base',document.getElementById('pBase'));
+  const b=BASE;
+  document.getElementById('baselineNote').innerHTML=
+    'Baseline ('+b.origen+'): <b>'+fmtUSD(b.ingresoCampana)+'</b> de ingreso por campaña · '+
+    '<b>$'+b.precioProm.toFixed(2)+'/kg</b> ponderado · rendimiento <b>'+b.rendPct.toFixed(1)+'%</b> · '+
+    '<b>'+fmtNum(b.kgHaCampana)+' kg neto/Ha</b> por campaña · <b>'+b.kgCaja.toFixed(1)+' kg brutos/caja</b> · precio máx histórico <b>$'+b.precioMax.toFixed(2)+'</b>.';
+}
+
+// ── SLIDERS Y CÁLCULO ─────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+let chartComp=null;
+
+function setSlider(id,val){const el=$(id);el.value=val;}
+
+function aplicarPreset(tipo,btn){
+  document.querySelectorAll('.presets .chip').forEach(c=>c.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const b=BASE;
+  if(tipo==='con'){
+    setSlider('kgha',Math.max(300,Math.round(b.kgHaCampana*0.8/50)*50));
+    setSlider('precio',(Math.round(b.precioProm*0.8/0.05)*0.05).toFixed(2));
+    setSlider('rend',(b.rendPct-2).toFixed(1));
+  } else if(tipo==='opt'){
+    setSlider('kgha',Math.min(10000,Math.round(b.kgHaCampana*3/50)*50));
+    setSlider('precio',(Math.round(Math.max(b.precioMax,b.precioProm*1.5)/0.05)*0.05).toFixed(2));
+    setSlider('rend',Math.min(95,b.rendPct+2).toFixed(1));
+  } else {
+    setSlider('kgha',Math.round(b.kgHaCampana/50)*50||1000);
+    setSlider('precio',(Math.round(b.precioProm/0.05)*0.05).toFixed(2));
+    setSlider('rend',b.rendPct.toFixed(1));
+  }
+  setSlider('ha',b.ha);
+  calcular();
+}
+
+function calcular(){
+  const ha=parseFloat($('ha').value);
+  const kgha=parseFloat($('kgha').value);
+  const precio=parseFloat($('precio').value);
+  const rend=parseFloat($('rend').value);
+  const costo=parseFloat($('costo').value);
+
+  $('haOut').textContent=ha.toFixed(1);
+  $('kghaOut').textContent=fmtNum(kgha);
+  $('precioOut').textContent='$'+precio.toFixed(2);
+  $('rendOut').textContent=rend.toFixed(1)+'%';
+  $('costoOut').textContent=costo>0?'$'+costo.toFixed(2):'—';
+
+  const neto=ha*kgha;
+  const bruto=neto/(rend/100);
+  const cajas=bruto/BASE.kgCaja;
+  const ingreso=neto*precio;
+  const delta=(ingreso/BASE.ingresoCampana-1)*100;
+
+  $('ingresoOut').textContent=fmtUSD(ingreso);
+  const d=$('deltaOut');
+  d.textContent=(delta>=0?'+':'')+delta.toFixed(0)+'% vs campaña promedio';
+  d.className='kpi-sub '+(delta>=0?'up':'down');
+  $('netoOut').textContent=fmtKg(neto);
+  $('brutoOut').textContent=fmtKg(bruto)+' brutos';
+  $('cajasOut').textContent=fmtNum(cajas);
+  $('cajasSubOut').textContent='a '+BASE.kgCaja.toFixed(1)+' kg brutos/caja';
+
+  const m=$('margenOut'),ms=$('margenSubOut');
+  if(costo>0){
+    const margen=ingreso-neto*costo;
+    m.textContent=fmtUSD(margen);
+    m.className='kpi-val '+(margen>=0?'':'red');
+    ms.textContent=ingreso>0?((margen/ingreso)*100).toFixed(0)+'% del ingreso':'—';
+  } else {
+    m.textContent='—';m.className='kpi-val faint';
+    ms.textContent='mueve el costo/kg';
+  }
+  renderChart(ingreso);
+}
+
+function renderChart(ingresoEscenario){
+  const labels=BASE.campanas.map(c=>c.periodo.length>16?c.periodo.slice(0,16)+'…':c.periodo);
+  const data=BASE.campanas.map(c=>c.ingreso);
+  labels.push('Escenario');
+  data.push(ingresoEscenario);
+  const colors=data.map((_,i)=>i===data.length-1?'#a7e163':'rgba(125,144,112,.45)');
+  const borders=data.map((_,i)=>i===data.length-1?'#a7e163':'rgba(125,144,112,.7)');
+  if(chartComp){
+    chartComp.data.labels=labels;
+    chartComp.data.datasets[0].data=data;
+    chartComp.data.datasets[0].backgroundColor=colors;
+    chartComp.data.datasets[0].borderColor=borders;
+    chartComp.update('none');
+    return;
+  }
+  chartComp=new Chart($('chartComp'),{type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderColor:borders,borderWidth:1,borderRadius:4}]},
+    options:{
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#11170f',borderColor:'rgba(214,235,185,.2)',borderWidth:1,titleColor:'#edf3e3',bodyColor:'#7d9070',titleFont:{family:"'Spline Sans Mono',monospace",size:11},bodyFont:{family:"'Spline Sans Mono',monospace",size:11},callbacks:{label:ctx=>fmtUSD(ctx.parsed.y)}}},
+      scales:{
+        x:{ticks:{color:'#51604a',font:{family:"'Spline Sans Mono',monospace",size:8},maxRotation:45},grid:{display:false}},
+        y:{ticks:{color:'#51604a',font:{family:"'Spline Sans Mono',monospace",size:9},callback:v=>'$'+(v>=1000?(v/1000)+'k':v)},grid:{color:'rgba(214,235,185,.04)'}},
+      },
+      animation:{duration:250},responsive:true,maintainAspectRatio:false,
+    },
+  });
+}
+
+['ha','kgha','precio','rend','costo'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    document.querySelectorAll('.presets .chip').forEach(c=>c.classList.remove('active'));
+    calcular();
+  });
+});
+
+calcular();
+cargarBaseline();
+</script>
+</body>
+</html>
