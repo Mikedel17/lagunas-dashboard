@@ -102,7 +102,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <path d="M19 8 C22 13 25 18 23 23 C21 27 17 27 15 23 C13 18 16 13 19 8Z" fill="#5d7a3e" opacity=".6"/>
       <line x1="19" y1="22" x2="19" y2="32" stroke="#a7e163" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    <h1>Lagunas Green<span>Simulador de próxima cosecha</span></h1>
+    <h1>Lagunas Green<span>Simulador · próxima campaña</span></h1>
   </div>
   <div class="header-right">
     <span class="badge" id="badgeBase">baseline: cargando…</span>
@@ -118,9 +118,13 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 <div class="controls">
   <div class="ctl">
-    <div class="ctl-head"><span class="ctl-label">Hectáreas</span><span class="ctl-val teal" id="haOut">18.5</span></div>
-    <input type="range" id="ha" min="1" max="25" step="0.5" value="18.5">
+    <div class="ctl-head"><span class="ctl-label">Hectáreas productivas</span><span class="ctl-val teal" id="haOut">5.5</span></div>
+    <input type="range" id="ha" min="1" max="25" step="0.5" value="5.5">
     <div class="ctl-range"><span>1</span><span>25 Ha</span></div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="chip ha-chip active" id="haActual" onclick="setHa(5.5,this)">Actual · 5.5 Ha</button>
+      <button class="chip ha-chip" id="haAmpliada" onclick="setHa(15.5,this)">Con ampliación · 15.5 Ha</button>
+    </div>
   </div>
   <div class="ctl">
     <div class="ctl-head"><span class="ctl-label">Producción · Kg neto / Ha</span><span class="ctl-val" id="kghaOut">1,000</span></div>
@@ -133,7 +137,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
     <div class="ctl-range"><span>$0.80</span><span>$6.00</span></div>
   </div>
   <div class="ctl">
-    <div class="ctl-head"><span class="ctl-label">Rendimiento neto (neto/bruto)</span><span class="ctl-val" id="rendOut">88.6%</span></div>
+    <div class="ctl-head"><span class="ctl-label">Rendimiento neto · solo estima bruto y cajas, NO afecta el ingreso</span><span class="ctl-val" id="rendOut">88.6%</span></div>
     <input type="range" id="rend" min="80" max="95" step="0.1" value="88.6">
     <div class="ctl-range"><span>80%</span><span>95%</span></div>
   </div>
@@ -145,7 +149,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 </div>
 
 <div class="kpi-grid">
-  <div class="kpi"><div class="kpi-label">Ingreso Estimado</div><div class="kpi-val" id="ingresoOut">—</div><div class="kpi-sub" id="deltaOut">—</div></div>
+  <div class="kpi"><div class="kpi-label">Ingreso Estimado · Campaña</div><div class="kpi-val" id="ingresoOut">—</div><div class="kpi-sub" id="deltaOut">—</div></div>
   <div class="kpi"><div class="kpi-label">Peso Neto</div><div class="kpi-val teal" style="font-size:1.25rem" id="netoOut">—</div><div class="kpi-sub" id="brutoOut">—</div></div>
   <div class="kpi"><div class="kpi-label">Cajas Estimadas</div><div class="kpi-val" style="font-size:1.25rem" id="cajasOut">—</div><div class="kpi-sub" id="cajasSubOut">—</div></div>
   <div class="kpi"><div class="kpi-label">Margen Estimado</div><div class="kpi-val faint" id="margenOut">—</div><div class="kpi-sub" id="margenSubOut">mueve el costo/kg</div></div>
@@ -161,7 +165,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 <div class="baseline-note" id="baselineNote">Cargando baseline desde el Sheet de Liquidaciones…</div>
 
-<div class="footer" id="footer">Modelo: neto = Ha × kg/Ha · bruto = neto ÷ rendimiento · ingreso = neto × precio</div>
+<div class="footer" id="footer">Modelo por campaña: ingreso = kg NETO × precio (sin doble descuento) · el rendimiento solo convierte neto→bruto para estimar cajas</div>
 
 <script>
 const PUB_KEY  = '2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8';
@@ -177,7 +181,7 @@ let BASE = {
   precioProm: 1.56,        // USD/kg neto ponderado
   rendPct: 88.6,           // neto/bruto %
   kgHaCampana: 3903,       // kg neto/Ha (neto acumulado / Ha acumuladas)
-  ha: 4.5,                 // Ha promedio por campaña
+  ha: 5.5,                 // Ha productivas actuales (2026); +10 Ha entran el próximo año
   precioMax: 2.55,
   campanas: [],            // [{periodo, ingreso}]
   origen: 'valores de respaldo',
@@ -243,8 +247,8 @@ async function cargarBaseline(){
       rendPct: totPB>0?(totPN/totPB)*100:BASE.rendPct,
       // kg neto/Ha real: neto acumulado / Ha acumuladas (ponderado)
       kgHaCampana: totHa>0?totPNHa/totHa:BASE.kgHaCampana,
-      // Ha por campaña: promedio de las campañas con dato (el sim es UNA campaña)
-      ha: conHa.length?Math.round((totHa/conHa.length)*2)/2:BASE.ha,
+      // Ha productivas: valor operativo fijo, no se deriva del Sheet
+      ha: BASE.ha,
       precioMax: precioMax||BASE.precioMax,
       campanas,
       origen: n+' campañas del Sheet',
@@ -284,7 +288,13 @@ function aplicarPreset(tipo,btn){
     setSlider('precio',(Math.round(b.precioProm/0.05)*0.05).toFixed(2));
     setSlider('rend',b.rendPct.toFixed(1));
   }
-  setSlider('ha',b.ha);
+  calcular();
+}
+
+function setHa(v,btn){
+  setSlider('ha',v);
+  document.querySelectorAll('.ha-chip').forEach(c=>c.classList.remove('active'));
+  if(btn) btn.classList.add('active');
   calcular();
 }
 
@@ -360,6 +370,7 @@ function renderChart(ingresoEscenario){
 ['ha','kgha','precio','rend','costo'].forEach(id=>{
   $(id).addEventListener('input',()=>{
     document.querySelectorAll('.presets .chip').forEach(c=>c.classList.remove('active'));
+    if(id==='ha') document.querySelectorAll('.ha-chip').forEach(c=>c.classList.remove('active'));
     calcular();
   });
 });
