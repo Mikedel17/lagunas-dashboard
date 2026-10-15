@@ -78,10 +78,21 @@
   main{padding:0 26px}
 
   /* ── toggle de unidad ────────────────────── */
-  .unit-row{display:none;justify-content:flex-end;margin:22px 0 -6px}
+  .unit-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0 -6px}
   .unit-toggle{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px}
-  .u-btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  .unit-toggle.hidden{display:none}
+  .camp-toggle{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .camp-toggle::-webkit-scrollbar{display:none}
+  .u-btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;
     background:none;border:none;border-radius:999px;padding:6px 16px;cursor:pointer;transition:all .18s}
+  .u-btn:disabled{opacity:.35;cursor:not-allowed}
+  .u-btn:focus-visible{outline:1px solid var(--green);outline-offset:1px}
+  .u-btn.cmp{color:var(--amber)}
+  .u-btn.cmp.active{background:rgba(245,195,59,.14);color:var(--amber);box-shadow:inset 0 0 0 1px rgba(245,195,59,.4)}
+  .camp-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:14px;width:100%}
+  .camp-note:empty{display:none}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:-4px 0 10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
   .u-btn:hover{color:var(--text)}
   .u-btn.active{background:rgba(167,225,99,.14);color:var(--green);box-shadow:inset 0 0 0 1px rgba(167,225,99,.35)}
 
@@ -147,6 +158,9 @@
   tbody td{padding:11px 10px;font-family:var(--mono);font-size:13px;text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
   td.sec-name{text-align:left;font-family:var(--sans);font-weight:500;white-space:nowrap}
   td.zero{color:var(--faint)}
+  tfoot td{padding:11px 10px;font-family:var(--mono);font-size:13px;font-weight:700;text-align:right;
+    border-top:1px solid var(--border2);font-variant-numeric:tabular-nums}
+  tfoot td.sec-name{text-align:left;font-family:var(--sans)}
   .row-dot{display:inline-block;width:8px;height:8px;border-radius:50%}
   tr.sel .row-dot{box-shadow:0 0 8px var(--row-glow)}
   .bar-cell{display:flex;align-items:center;gap:7px;justify-content:flex-end}
@@ -198,11 +212,13 @@
 <div id="statusBanner"></div>
 
 <main>
-  <div class="unit-row reveal d1" id="unitRow">
-    <div class="unit-toggle" role="group" aria-label="Unidad de medida">
+  <div class="unit-row reveal d1">
+    <div class="unit-toggle camp-toggle" id="campToggle" role="group" aria-label="Campaña"></div>
+    <div class="unit-toggle hidden" id="unitRow" role="group" aria-label="Unidad de medida">
       <button id="uJabas" class="u-btn active" onclick="setUnit('jabas')" aria-pressed="true">Jabas</button>
       <button id="uKg" class="u-btn" onclick="setUnit('kg')" aria-pressed="false">Kilos</button>
     </div>
+    <div class="camp-note" id="campNote"></div>
   </div>
 
   <div class="kpi-grid reveal d1" id="kpiGrid">
@@ -223,15 +239,16 @@
 
   <div class="reveal d3">
     <div class="filter-head" style="margin-top:30px">
-      <div class="sec-title">Producción diaria</div>
+      <div class="sec-title" id="prodTitle">Producción diaria</div>
     </div>
+    <div class="legend" id="campLegend"></div>
     <div class="charts-row">
       <div class="chart-card">
-        <div class="chart-name">Jabas por día · apilado</div>
+        <div class="chart-name" id="chartName1">Jabas por día · apilado</div>
         <div class="chart-box"><canvas id="stackChart" role="img" aria-label="Jabas por sección por día apiladas">Cargando…</canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-name">Tendencia por sección</div>
+        <div class="chart-name" id="chartName2">Tendencia por sección</div>
         <div class="chart-box"><canvas id="lineChart" role="img" aria-label="Tendencia diaria por sección">Cargando…</canvas></div>
       </div>
     </div>
@@ -239,10 +256,10 @@
 
   <div class="reveal d4">
     <div class="filter-head" style="margin-top:30px">
-      <div class="sec-title">Resumen por sección</div>
+      <div class="sec-title" id="tableTitle">Resumen por sección</div>
     </div>
     <div class="table-card">
-      <table><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
+      <table><thead id="tHead"></thead><tbody id="tBody"></tbody><tfoot id="tFoot"></tfoot></table>
     </div>
   </div>
 </main>
@@ -258,8 +275,11 @@ const COLORS  = ['#a7e163','#4fd1c5','#74a8f7','#c084fc','#f5c33b','#fb923c','#f
 const DASHES  = [[],[6,3],[2,3],[8,4],[4,2,2,2],[6,2]];
 const fmt     = n => n.toLocaleString('es-PE');
 
-let DATA = null;            // datos procesados del CSV
+let RAW = null;             // datos procesados del CSV (todas las campañas)
+let DATA = null;            // vista de la campaña activa (misma forma que RAW)
 let filter = new Set();     // secciones seleccionadas (vacío = todas)
+let campSel = null;         // label de campaña activa, o 'compare'
+let chartMode = null;       // 'single' | 'compare' — qué gráficos están montados
 let barChart = null, lineChart = null;
 
 /* ── parsing ──────────────────────────────── */
@@ -321,16 +341,75 @@ function process(rows) {
   const sorted = secs.slice().sort((a,b) => totals[b]-totals[a]);
   const grand  = sorted.reduce((s,x) => s+totals[x], 0);
   const grandK = sorted.reduce((s,x) => s+totalsK[x], 0);
-  return {dates, sorted, mat, matK, totals, totalsK, grand, grandK, hasKg: !!kK && grandK > 0};
+  const kP = findCol(rows[0], ['periodo','campaña','campana']);
+  const camps = detectCampaigns(rows, kD, kP, dates);
+  return {dates, sorted, mat, matK, totals, totalsK, grand, grandK, hasKg: !!kK && grandK > 0, camps};
+}
+
+/* ── campañas ─────────────────────────────── */
+// Una campaña nueva empieza cuando cambia la columna Periodo o, si está vacía,
+// cuando hay más de GAP_DAYS días seguidos sin cosecha.
+const GAP_DAYS = 15;
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+
+function dayNum(d) {
+  const [y, m, dd] = sortDate(d).split('-').map(Number);
+  return Math.round(Date.UTC(y || 2000, (m || 1) - 1, dd || 1) / 86400000);
+}
+
+function autoLabel(dates) {
+  const parts = d => sortDate(d).split('-').map(Number);
+  const [y1, m1] = parts(dates[0]), [y2, m2] = parts(dates[dates.length-1]);
+  if (y1 === y2 && m1 === m2) return `${MESES[m1-1]} ${y1}`;
+  if (y1 === y2) return `${MESES[m1-1]}–${MESES[m2-1]} ${y1}`;
+  return `${MESES[m1-1]} ${y1}–${MESES[m2-1]} ${y2}`;
+}
+
+function detectCampaigns(rows, kD, kP, dates) {
+  const per = {};
+  if (kP) rows.forEach(r => { if (r[kP] && !per[r[kD]]) per[r[kD]] = r[kP]; });
+  const groups = [];
+  let cur = null, prev = null;
+  dates.forEach(d => {
+    const p = per[d] || null, n = dayNum(d);
+    const gap = prev !== null && n - prev > GAP_DAYS;
+    const brk = !cur || (p && cur.periodo ? p !== cur.periodo : gap);
+    if (brk) { cur = {periodo: p, dates: []}; groups.push(cur); }
+    else if (p && !cur.periodo) cur.periodo = p;
+    cur.dates.push(d);
+    prev = n;
+  });
+  return groups.map((g, i) => ({
+    id: 'c' + i,
+    label: g.periodo || autoLabel(g.dates),
+    byPeriodo: !!g.periodo,
+    dates: g.dates,
+    start: dayNum(g.dates[0])
+  }));
+}
+
+// Recorta los totales al rango de fechas de una campaña
+function subset(dates) {
+  const sum = (m, s) => dates.reduce((a, d) => a + (m[s][d] || 0), 0);
+  const totals = {}, totalsK = {};
+  RAW.sorted.forEach(s => { totals[s] = sum(RAW.mat, s); totalsK[s] = sum(RAW.matK, s); });
+  const sorted = RAW.sorted.filter(s => totals[s] > 0 || totalsK[s] > 0)
+    .sort((a, b) => totals[b] - totals[a]);
+  const grand  = sorted.reduce((a, s) => a + totals[s], 0);
+  const grandK = sorted.reduce((a, s) => a + totalsK[s], 0);
+  return {dates, sorted, mat: RAW.mat, matK: RAW.matK, totals, totalsK, grand, grandK, hasKg: RAW.hasKg};
 }
 
 /* ── unidad (jabas / kg) ──────────────────── */
 let unit = localStorage.getItem('lg-unit') === 'kg' ? 'kg' : 'jabas';
-const M = () => unit === 'kg' ? DATA.matK : DATA.mat;       // matriz activa
-const T = () => unit === 'kg' ? DATA.totalsK : DATA.totals; // totales activos
-const G = () => unit === 'kg' ? DATA.grandK : DATA.grand;   // gran total activo
-const uName = () => unit === 'kg' ? 'kg' : 'jabas';
-const fmtU  = v => unit === 'kg' ? fmt(Math.round(v)) : fmt(v);
+// kgBlocked: la campaña en pantalla no tiene KG en el Sheet → se muestra en jabas
+let kgBlocked = false;
+const U = () => kgBlocked ? 'jabas' : unit;
+const M = () => U() === 'kg' ? DATA.matK : DATA.mat;       // matriz activa
+const T = () => U() === 'kg' ? DATA.totalsK : DATA.totals; // totales activos
+const G = () => U() === 'kg' ? DATA.grandK : DATA.grand;   // gran total activo
+const uName = () => U() === 'kg' ? 'kg' : 'jabas';
+const fmtU  = v => U() === 'kg' ? fmt(Math.round(v)) : fmt(v);
 
 function setUnit(u) {
   if (u === 'kg' && (!DATA || !DATA.hasKg)) return;
@@ -341,20 +420,53 @@ function setUnit(u) {
 }
 function syncUnitToggle() {
   const j = document.getElementById('uJabas'), k = document.getElementById('uKg');
-  j.classList.toggle('active', unit === 'jabas'); j.setAttribute('aria-pressed', unit === 'jabas');
-  k.classList.toggle('active', unit === 'kg');    k.setAttribute('aria-pressed', unit === 'kg');
+  const kOn = U() === 'kg';
+  j.classList.toggle('active', !kOn); j.setAttribute('aria-pressed', !kOn);
+  k.classList.toggle('active', kOn);  k.setAttribute('aria-pressed', kOn);
+  k.disabled = kgBlocked;
+  k.title = kgBlocked ? 'Esta campaña no tiene KG Aprox en el Sheet' : '';
 }
 
 /* ── filtro ───────────────────────────────── */
-const colorOf = s => COLORS[DATA.sorted.indexOf(s) % COLORS.length];
-const dashOf  = s => DASHES[DATA.sorted.indexOf(s) % DASHES.length];
+// colores fijos por sección (no cambian al cambiar de campaña)
+const colorOf = s => COLORS[RAW.sorted.indexOf(s) % COLORS.length];
+const dashOf  = s => DASHES[RAW.sorted.indexOf(s) % DASHES.length];
 const selectedSecs = () => filter.size ? DATA.sorted.filter(s => filter.has(s)) : DATA.sorted;
 
 function toggleSection(s) {
-  if (!DATA || !DATA.sorted.includes(s)) return;
+  if (!RAW || !RAW.sorted.includes(s)) return;
   filter.has(s) ? filter.delete(s) : filter.add(s);
   if (filter.size === DATA.sorted.length) filter.clear();
   renderView();
+}
+
+const isCompare = () => campSel === 'compare' && RAW.camps.length > 1;
+const lastCamp  = () => RAW.camps[RAW.camps.length - 1];
+const activeCamp = () => RAW.camps.find(c => c.label === campSel) || lastCamp();
+
+function setCamp(label) { campSel = label; renderView(); }
+
+function campHasKg(c) {
+  return c.dates.some(d => RAW.sorted.some(s => (RAW.matK[s][d] || 0) > 0));
+}
+
+function renderCampBar(noKg = []) {
+  const camps = RAW.camps;
+  const btn = (label, txt, cls = '') => {
+    const on = campSel === label;
+    return `<button class="u-btn${cls}${on ? ' active' : ''}" aria-pressed="${on}"
+      onclick="setCamp('${label.replace(/'/g, "\\'")}')">${txt}</button>`;
+  };
+  document.getElementById('campToggle').innerHTML =
+    camps.map(c => btn(c.label, c.label)).join('') +
+    (camps.length > 1 ? btn('compare', '⇄ Comparar', ' cmp') : '');
+
+  let note = '';
+  if (camps.some(c => !c.byPeriodo) && camps.length > 1)
+    note = `campañas detectadas por pausa de más de ${GAP_DAYS} días · llena la columna Periodo del Sheet para nombrarlas`;
+  if (noKg.length && unit === 'kg')
+    note = `${noKg.map(c => c.label).join(', ')} sin KG Aprox en el Sheet · mostrando jabas` + (note ? ` · ${note}` : '');
+  document.getElementById('campNote').textContent = note;
 }
 function clearFilter() { filter.clear(); renderView(); }
 
@@ -365,7 +477,7 @@ function computeView() {
   const mat = M();
   const daily = dates.map(d => sel.reduce((s,x) => s+(mat[x][d]||0), 0));
   const grand = daily.reduce((a,b) => a+b, 0);
-  const otherMat = unit === 'kg' ? DATA.mat : DATA.matK;
+  const otherMat = U() === 'kg' ? DATA.mat : DATA.matK;
   const grandOther = sel.reduce((s,x) => s + dates.reduce((a,d) => a+(otherMat[x][d]||0), 0), 0);
   const lastD = dates[dates.length-1], prevD = dates[dates.length-2];
   const todayV = daily[daily.length-1];
@@ -381,12 +493,25 @@ function computeView() {
 
 /* ── render ───────────────────────────────── */
 function renderView() {
-  if (!DATA) return;
-  const v = computeView();
-  renderKPIs(v);
+  if (!RAW) return;
+  const cmp = isCompare();
+  if (!cmp && !RAW.camps.some(c => c.label === campSel)) campSel = lastCamp().label;
+  // en comparación, chips y totales muestran la campaña en curso
+  DATA = subset(cmp ? lastCamp().dates : activeCamp().dates);
+  const shownCamps = cmp ? RAW.camps.slice(-MAX_CURVES) : [activeCamp()];
+  const noKg = shownCamps.filter(c => !campHasKg(c));
+  kgBlocked = RAW.hasKg && noKg.length > 0;
+  syncUnitToggle();
+  renderCampBar(noKg);
   renderChips();
-  renderCharts(v);
-  renderTable(v);
+  if (cmp) {
+    renderCompare();
+  } else {
+    const v = computeView();
+    renderKPIs(v);
+    renderCharts(v);
+    renderTable(v);
+  }
 
   const note = document.getElementById('filterNote');
   const clearBtn = document.getElementById('clearBtn');
@@ -407,8 +532,8 @@ function renderKPIs(v) {
   const isF   = filter.size > 0;
   const pctOfTotal = isF && G() ? Math.round(v.grand/G()*100) : null;
   // equivalencia en la otra unidad (≈ porque los kg son estimados)
-  const equiv = DATA.hasKg
-    ? (unit === 'kg' ? `= ${fmt(Math.round(v.grandOther))} jabas` : `≈ ${fmt(Math.round(v.grandOther))} kg`)
+  const equiv = DATA.hasKg && !kgBlocked
+    ? (U() === 'kg' ? `= ${fmt(Math.round(v.grandOther))} jabas` : `≈ ${fmt(Math.round(v.grandOther))} kg`)
     : '';
 
   let k3, k4;
@@ -420,10 +545,10 @@ function renderKPIs(v) {
             <div class="kpi-val nu">${fmt(v.avg)}</div>
             <div class="kpi-sub nu">${uName()} por día activo</div></div>`;
   } else {
-    const top = DATA.sorted[0];
+    const top = DATA.sorted[0] || '—';
     k3 = `<div class="kpi"><div class="kpi-label">Sección líder</div>
             <div class="kpi-val nu" style="font-size:${top.length>9?15:19}px;margin-top:4px">${top}</div>
-            <div class="kpi-sub nu">${fmtU(T()[top])} ${uName()}</div></div>`;
+            <div class="kpi-sub nu">${fmtU(T()[top]||0)} ${uName()}</div></div>`;
     k4 = `<div class="kpi"><div class="kpi-label">Secciones activas</div>
             <div class="kpi-val nu">${v.actLast}</div>
             <div class="kpi-sub nu">en ${v.lastD||'—'}</div></div>`;
@@ -540,7 +665,20 @@ function buildCharts(v) {
   });
 }
 
+function destroyCharts() {
+  if (barChart) { barChart.destroy(); barChart = null; }
+  if (lineChart) { lineChart.destroy(); lineChart = null; }
+}
+
 function renderCharts(v) {
+  if (chartMode !== 'single') { destroyCharts(); chartMode = 'single'; }
+  {
+    document.getElementById('prodTitle').textContent = 'Producción diaria';
+    document.getElementById('chartName1').textContent = `${uName()} por día · apilado`;
+    document.getElementById('chartName2').textContent = 'Tendencia por sección';
+    document.getElementById('tableTitle').textContent = 'Resumen por sección';
+    document.getElementById('campLegend').innerHTML = '';
+  }
   if (!barChart || !lineChart) { buildCharts(v); return; }
   const ds = chartDatasets(v.sel);
   barChart.data.datasets = ds.bar;   barChart.update();
@@ -585,13 +723,149 @@ function renderTable() {
       <td>${spark(vals, c)}</td>
     </tr>`;
   }).join('');
+  document.getElementById('tFoot').innerHTML = '';
+  bindRows();
+}
 
+function bindRows() {
   document.querySelectorAll('#tBody tr').forEach(tr => {
     tr.addEventListener('click', () => toggleSection(tr.dataset.sec));
     tr.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSection(tr.dataset.sec); }
     });
   });
+}
+
+/* ── comparación por día de campaña ───────── */
+// Las campañas se alinean por día de campaña (D1 = primer día de cosecha),
+// no por fecha. Se compara la campaña en curso (B) con la anterior (A)
+// a la misma altura: el día N que lleva B.
+const CAMP_COLORS = ['#a7e163','#4fd1c5','#74a8f7','#c084fc'];  // de la más reciente hacia atrás
+const CAMP_DASHES = [[], [6,3], [2,3], [8,4]];
+const MAX_CURVES  = 4;
+
+function campSeries(c, secs) {
+  const mat = M();
+  const len = dayNum(c.dates[c.dates.length-1]) - c.start + 1;
+  const daily = new Array(len).fill(0);
+  c.dates.forEach(d => {
+    daily[dayNum(d) - c.start] += secs.reduce((s, x) => s + (mat[x][d] || 0), 0);
+  });
+  let acc = 0;
+  const cum = daily.map(v => acc += v);
+  return {daily, cum, len, total: acc};
+}
+const cumAt  = (sr, n) => sr.len ? sr.cum[Math.min(n, sr.len) - 1] : 0;
+const peakOf = sr => sr.daily.reduce((b, v, i) => v > b.v ? {v, d: i + 1} : b, {v: 0, d: 0});
+const pctTxt = p => p === null ? '—' : `${p >= 0 ? '+' : ''}${p}%`;
+const pctCls = p => p === null ? 'nu' : p >= 0 ? 'up' : 'dn';
+const pctOf  = (b, a) => a ? Math.round((b / a - 1) * 100) : null;
+
+function renderCompare() {
+  const camps = RAW.camps;
+  const B = camps[camps.length-1], A = camps[camps.length-2];
+  const sel = filter.size ? RAW.sorted.filter(s => filter.has(s)) : RAW.sorted;
+  const sA = campSeries(A, sel), sB = campSeries(B, sel);
+  const N = sB.len;
+  const aN = cumAt(sA, N), bN = sB.total;
+  const p = pctOf(bN, aN);
+  const proj = aN && N < sA.len ? Math.round(sA.total * bN / aN) : null;
+  const pkA = peakOf(sA), pkB = peakOf(sB);
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi"><div class="kpi-label">${B.label} · día ${N}</div>
+      <div class="kpi-val" style="color:var(--green)">${fmtU(bN)}</div>
+      <div class="kpi-sub nu">${uName()} · ${A.label} llevaba ${fmtU(aN)}</div></div>
+    <div class="kpi"><div class="kpi-label">Ritmo vs ${A.label}</div>
+      <div class="kpi-val ${pctCls(p)}">${pctTxt(p)}</div>
+      <div class="kpi-sub nu">a la misma altura (día ${N})</div></div>
+    <div class="kpi"><div class="kpi-label">Proyección de cierre</div>
+      <div class="kpi-val nu">${proj !== null ? fmtU(proj) : '—'}</div>
+      <div class="kpi-sub nu">${proj !== null
+        ? `si mantiene el ritmo · ${A.label} cerró en ${fmtU(sA.total)} (${sA.len} días)`
+        : `ya pasó la duración de ${A.label} (${sA.len} días)`}</div></div>
+    <div class="kpi"><div class="kpi-label">Pico diario</div>
+      <div class="kpi-val nu">${fmtU(pkB.v)}</div>
+      <div class="kpi-sub nu">día ${pkB.d || '—'} · ${A.label}: ${fmtU(pkA.v)} el día ${pkA.d || '—'}</div></div>`;
+
+  renderCompareCharts(camps.slice(-MAX_CURVES), sel);
+  renderCompareTable(A, B, N);
+}
+
+function renderCompareCharts(shown, sel) {
+  const series = shown.map(c => ({c, s: campSeries(c, sel)}));
+  const maxLen = Math.max(...series.map(x => x.s.len));
+  const labels = Array.from({length: maxLen}, (_, i) => `D${i+1}`);
+  const col  = i => CAMP_COLORS[(shown.length - 1 - i) % CAMP_COLORS.length];
+  const dash = i => CAMP_DASHES[(shown.length - 1 - i) % CAMP_DASHES.length];
+  const pad  = arr => labels.map((_, i) => i < arr.length ? arr[i] : null);
+  const mk = (key, fill) => series.map(({c, s}, i) => ({
+    label: c.label, data: pad(s[key]),
+    borderColor: col(i), backgroundColor: fill && i === series.length-1 ? col(i)+'1f' : 'transparent',
+    fill: fill && i === series.length-1, borderWidth: i === series.length-1 ? 2.5 : 1.8, borderDash: dash(i),
+    pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: col(i), tension: 0.3, spanGaps: false
+  }));
+
+  document.getElementById('prodTitle').textContent = 'Curva de cosecha por día de campaña';
+  document.getElementById('chartName1').textContent = `Acumulado · ${uName()}`;
+  document.getElementById('chartName2').textContent = `Diario · ${uName()}`;
+  document.getElementById('tableTitle').textContent = 'Por sección · misma altura';
+  document.getElementById('campLegend').innerHTML = series.map(({c}, i) =>
+    `<span><i style="background:${col(i)}"></i>${c.label}</span>`).join('');
+
+  const tick = '#67785d', grid = 'rgba(214,235,185,0.055)';
+  const mono = {size: 11, family: "'Spline Sans Mono', monospace"};
+  const opts = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode: 'index', intersect: false},
+    plugins: {legend: {display: false}, tooltip: {...TOOLTIP_STYLE,
+      filter: item => item.parsed.y !== null,
+      callbacks: {label: ctx => ` ${ctx.dataset.label}: ${fmtU(ctx.parsed.y)} ${uName()}`}}},
+    scales: {
+      x: {ticks: {color: tick, font: mono, maxTicksLimit: 10, autoSkip: true}, grid: {display: false}},
+      y: {ticks: {color: tick, font: mono}, grid: {color: grid}, beginAtZero: true, border: {display: false}}
+    }
+  };
+
+  destroyCharts();
+  chartMode = 'compare';
+  barChart  = new Chart(document.getElementById('stackChart'), {type: 'line', data: {labels, datasets: mk('cum', true)}, options: opts});
+  lineChart = new Chart(document.getElementById('lineChart'),  {type: 'line', data: {labels, datasets: mk('daily', false)}, options: opts});
+}
+
+function renderCompareTable(A, B, N) {
+  const rows = RAW.sorted.map(s => {
+    const a = campSeries(A, [s]), b = campSeries(B, [s]);
+    return {s, aN: cumAt(a, N), bN: b.total, aTot: a.total};
+  }).filter(r => r.aTot || r.bN).sort((x, y) => y.bN - x.bN);
+
+  document.getElementById('tHead').innerHTML = `
+    <tr><th style="width:14px"></th><th>Sección</th>
+    <th>${A.label} · D${N}</th><th>${B.label} · D${N}</th><th>Δ</th><th>${A.label} total</th></tr>`;
+
+  document.getElementById('tBody').innerHTML = rows.map(r => {
+    const c = colorOf(r.s), on = filter.has(r.s), dim = filter.size > 0 && !on;
+    const p = pctOf(r.bN, r.aN);
+    const dTxt = r.aN ? pctTxt(p) : r.bN ? 'nuevo' : '—';
+    return `<tr class="${on?'sel':''}${dim?' dim':''}" tabindex="0" data-sec="${r.s}"
+      style="--row-bg:${c}14;--row-glow:${c}" title="clic para ${on?'quitar de':'aislar en'} el filtro">
+      <td><span class="row-dot" style="background:${c}"></span></td>
+      <td class="sec-name">${r.s}</td>
+      <td class="${r.aN?'':'zero'}">${r.aN ? fmtU(r.aN) : '—'}</td>
+      <td class="${r.bN?'':'zero'}" style="font-weight:700">${r.bN ? fmtU(r.bN) : '—'}</td>
+      <td class="${r.aN ? pctCls(p) : 'nu'}">${dTxt}</td>
+      <td class="nu">${r.aTot ? fmtU(r.aTot) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const vis = filter.size ? rows.filter(r => filter.has(r.s)) : rows;
+  const tot = k => vis.reduce((a, r) => a + r[k], 0);
+  const tp = pctOf(tot('bN'), tot('aN'));
+  document.getElementById('tFoot').innerHTML = `
+    <tr><td></td><td class="sec-name">Total${filter.size ? ' · filtro' : ''}</td>
+    <td>${fmtU(tot('aN'))}</td><td>${fmtU(tot('bN'))}</td>
+    <td class="${pctCls(tp)}">${pctTxt(tp)}</td><td class="nu">${fmtU(tot('aTot'))}</td></tr>`;
+  bindRows();
 }
 
 /* ── carga ────────────────────────────────── */
@@ -609,13 +883,13 @@ async function loadData() {
     if (!rows.length) throw new Error('CSV vacío o sin datos.');
     const data = process(rows);
     if (!data) throw new Error('No se encontraron columnas Sección / Fecha / Jabas. Verifica los encabezados del Sheet.');
-    DATA = data;
-    filter = new Set([...filter].filter(s => DATA.sorted.includes(s)));
-    if (!DATA.hasKg && unit === 'kg') unit = 'jabas';
-    document.getElementById('unitRow').style.display = DATA.hasKg ? 'flex' : 'none';
+    RAW = data;
+    filter = new Set([...filter].filter(s => RAW.sorted.includes(s)));
+    if (!RAW.hasKg && unit === 'kg') unit = 'jabas';
+    document.getElementById('unitRow').classList.toggle('hidden', !RAW.hasKg);
     syncUnitToggle();
-    if (barChart) { barChart.destroy(); barChart = null; }
-    if (lineChart) { lineChart.destroy(); lineChart = null; }
+    destroyCharts();
+    chartMode = null;
     document.getElementById('statusBanner').style.display = 'none';
     renderView();
     document.getElementById('lastUpdated').textContent =
