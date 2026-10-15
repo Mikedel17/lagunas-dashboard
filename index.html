@@ -463,7 +463,7 @@ function renderCampBar(noKg = []) {
 
   let note = '';
   if (camps.some(c => !c.byPeriodo) && camps.length > 1)
-    note = `campañas detectadas por pausa de más de ${GAP_DAYS} días · llena la columna Periodo del Sheet para nombrarlas`;
+    note = `campañas separadas automáticamente por pausas de más de ${GAP_DAYS} días sin cosecha`;
   if (noKg.length && unit === 'kg')
     note = `${noKg.map(c => c.label).join(', ')} sin KG Aprox en el Sheet · mostrando jabas` + (note ? ` · ${note}` : '');
   document.getElementById('campNote').textContent = note;
