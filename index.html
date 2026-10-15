@@ -168,6 +168,11 @@
   .mini-fill{height:100%;border-radius:3px;transition:width .4s cubic-bezier(.22,.8,.32,1)}
   .spark{display:block}
 
+  .liq-link{font-family:var(--mono);font-size:11px;color:var(--teal);text-decoration:none;border-bottom:1px dashed rgba(79,209,197,.4)}
+  .liq-link:hover{opacity:.75}
+  .liq-msg{font-family:var(--mono);font-size:12px;color:var(--muted);padding:14px 0}
+  .liq-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:10px}
+
   footer{margin-top:36px;padding:18px 26px 0;display:flex;justify-content:space-between;align-items:center;
     font-size:11px;color:var(--faint);font-family:var(--mono);border-top:1px solid var(--border)}
   .refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);
@@ -262,6 +267,14 @@
       <table><thead id="tHead"></thead><tbody id="tBody"></tbody><tfoot id="tFoot"></tfoot></table>
     </div>
   </div>
+
+  <div class="reveal d5" id="liqWrap">
+    <div class="filter-head" style="margin-top:30px">
+      <div class="sec-title">Peso real <small>liquidaciones</small></div>
+      <a class="liq-link" href="liquidaciones.html">ver detalle →</a>
+    </div>
+    <div id="liqBody"><p class="liq-msg">cargando liquidaciones…</p></div>
+  </div>
 </main>
 
 <footer class="reveal d5">
@@ -269,6 +282,7 @@
   <button class="refresh-btn" onclick="loadData()">↻ Actualizar ahora</button>
 </footer>
 
+<script src="cosecha-liq.js"></script>
 <script>
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEll-BW_UewDrwyXnwNbl5qiyXSOAs5TSbs82yJltOzMy2qA_iSsMEhlVsfecD2hLzARX5SNCFcGA8/pub?gid=387764593&single=true&output=csv';
 const COLORS  = ['#a7e163','#4fd1c5','#74a8f7','#c084fc','#f5c33b','#fb923c','#f472b6','#94a3b8'];
@@ -512,6 +526,7 @@ function renderView() {
     renderCharts(v);
     renderTable(v);
   }
+  renderLiq();
 
   const note = document.getElementById('filterNote');
   const clearBtn = document.getElementById('clearBtn');
@@ -875,6 +890,7 @@ function showStatus(type, msg) {
 }
 
 async function loadData() {
+  loadLiq();
   showStatus('loading', '↻ Cargando datos desde Google Sheets…');
   try {
     const res = await fetch(CSV_URL, { cache: 'no-store' });
