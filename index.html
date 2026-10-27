@@ -146,6 +146,11 @@
   .table-card{background:linear-gradient(180deg,var(--surface2),var(--surface));
     border:1px solid var(--border);border-radius:14px;padding:6px 6px 4px;margin-top:14px;overflow-x:auto}
   table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+  /* Punto + sección quedan fijos al deslizar las fechas */
+  thead th:nth-child(-n+2),tbody td:nth-child(-n+2),tfoot td:nth-child(-n+2){position:sticky;z-index:1;background:var(--surface)}
+  thead th:first-child,tbody td:first-child,tfoot td:first-child{left:0;width:28px;min-width:28px;max-width:28px}
+  thead th:nth-child(2),tbody td:nth-child(2),tfoot td:nth-child(2){left:28px;box-shadow:1px 0 0 var(--border)}
+  tbody tr.sel td:nth-child(-n+2){background:linear-gradient(var(--row-bg),var(--row-bg)),var(--surface)}
   thead th{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);
     font-weight:400;padding:12px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
   thead th:nth-child(-n+2){text-align:left}

@@ -99,6 +99,11 @@ body::after{
 .comp-table td.val{text-align:right;font-family:var(--mono);color:var(--text);font-size:.78rem}
 .comp-table tr.group-header td{background:var(--surface2);color:var(--faint);font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;padding:5px 14px;border-top:1px solid var(--border2)}
 .comp-table td.best{color:var(--green);font-weight:700}
+/* KPI fijo a la izquierda al deslizar entre campañas */
+.comp-table td:first-child:not([colspan]),.comp-table th:first-child{position:sticky;left:0;z-index:1;background:var(--surface);box-shadow:1px 0 0 var(--border)}
+.comp-table thead th:first-child{background:var(--surface2)}
+.comp-table tbody tr:hover td:first-child{background:var(--surface2)}
+.group-lbl{position:sticky;left:14px}
 .col-color-0{color:#a7e163}.col-color-1{color:#4fd1c5}.col-color-2{color:#f5c33b}.col-color-3{color:#c4a0f5}.col-color-4{color:#f08c7d}.col-color-5{color:#7dd3fc}
 
 /* TARJETA CAMPAÑA INDIVIDUAL */
@@ -503,7 +508,7 @@ function renderComparativa(periodos){
   const tbody=document.getElementById('compBody');
   let html='';
   METRICAS.forEach(grupo=>{
-    html+=`<tr class="group-header"><td colspan="${ps.length+1}">${grupo.g}</td></tr>`;
+    html+=`<tr class="group-header"><td colspan="${ps.length+1}"><span class="group-lbl">${grupo.g}</span></td></tr>`;
     grupo.rows.forEach(m=>{
       // encontrar mejor valor para resaltar
       let bestIdx=-1;
